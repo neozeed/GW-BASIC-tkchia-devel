@@ -1644,4 +1644,3 @@ CONINT:	CALL	INTFR2		;CONVERT THE FAC TO AN INTEGER IN [D,E]
 ;
 CSEG	ENDS
 	END
-                                                                   

@@ -3825,4 +3825,3 @@ MAXQUO:
 	MOV	AX,CX
 	JNB	RESTORE	;Carry means it's not negative any more
 	RET
-                                                                                                           

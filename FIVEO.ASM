@@ -819,4 +819,3 @@ NTRNDW:	POP	BX		;Restore [H,L]
 	JMP	FINPRT
 CSEG	ENDS
 	END
-                   

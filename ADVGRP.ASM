@@ -1357,4 +1357,3 @@ CHKPHR:	POP	BX		;REGET TXTPTR
 
 CSEG	ENDS
 	END
-                       

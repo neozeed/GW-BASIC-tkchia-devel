@@ -986,4 +986,3 @@ EVALNF:	POP	CX		;Get rid of the return address.
 
 CSEG	ENDS
 	END
-                                          

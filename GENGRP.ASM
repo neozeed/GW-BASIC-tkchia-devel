@@ -567,4 +567,3 @@ GRPINI:	CALL	GRPSIZ		;Get screen pixel dimensions
 
 CSEG	ENDS
 	END
-                                                               

@@ -864,5 +864,4 @@ DSKCHR:	CALL	INDSKC		;Get char from file
 	JMP	SHORT PUTCHR	;Put char in string
 CSEG	ENDS
 	END
-                                                        
-                                                          
+
