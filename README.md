@@ -8,7 +8,7 @@ https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 ## Information
 
 Here I'm working to compile the original code with Microsoft MASM 5.1A.
-This is the version that currently seems to match more closely to the code.
+This is the version that currently seems to match the code most closely.
 
 Currently 33 of the 36 files have been compiled.
 Pull requests for fixing the remaining compilation programs are welcomed.
@@ -20,6 +20,12 @@ Under [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * The Microsoft make program that comes with MASM.
 
 Run `make makefile` to assemble the files.
+
+You can fetch MASM 5.1A from
+[this site](https://www.pcjs.org/software/pcx86/lang/microsoft/masm/4.00/).
+From the pull-down menu load and then save the corresponding disk.
+Mount the image on a Linux computer and copy the files across to
+your development directory.
 
 ## License
 
