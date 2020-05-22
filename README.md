@@ -7,11 +7,19 @@ https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 
 ## Information
 
-This repo:
+Here I'm working to compile the original code with Microsoft MASM 5.1A.
+This is the version that currently seems to match more closely to the code.
 
-1. Is being released for historical reference/interest purposes, and reflects the state of the GW-BASIC interpreter source code as it was in 1983
-1. Will not be modified - please do not submit PR's or request changes
-1. Contains no build scripts, makefiles, or tools required to generate executable binaries, nor does it contain any pre-built binaries / executables
+Currently 33 of the 36 files have been compiled.
+Pull requests for fixing the remaining compilation programs are welcomed.
+
+## Building instructions
+Under [DOSBox](https://www.dosbox.com/) mount a directory containing:
+* this code
+* MASM 5.1A
+* The Microsoft make program that comes with MASM.
+
+Run `make makefile` to assemble the files.
 
 ## License
 
@@ -19,9 +27,8 @@ All files within this repo are released under the [MIT (OSI) License]( https://e
 
 ## Contributing
 
-The source files in this repo are for historical reference and will remain read-only and unmodified in their original state. Please  **do not** send Pull Requests suggesting any modifications to the source files.  
-
-Further contribution guidance can be found in the [Contributor's Guide](https://github.com/Microsoft/GW-BASIC/blob/master/CONTRIBUTING.md) stored in the root of this repo.
+Pull requests addressing problems in getting GW-BASIC to build and run
+are welcomed.
 
 ## Code of Conduct
 
