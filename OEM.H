@@ -39,7 +39,7 @@
 	ESCCTL=0		;Escape Sequence processing in SCROUT
 	GWDBUG=0		;DEBUG statement (TEST VERSIONS ONLY)
 				; Support is in BINTRP.MAC and GWSTS.MAC
-	SIXDIG=0		;# of digits of accuracy assumed when formatting
+				H
 				;single precision numbers for output.
 				; 0 := 7 digits
 				; 1 := 6 digits
@@ -52,7 +52,7 @@
 	SCRN86=1		;8086 Screen editor
 	I8086=1			;CROSS ASSEMBLING FOR 8086
 	MULSEG=1		;MULTI-SEGMENT 8086 BASIC
-	SHORT=0			;"SMALL" VERSION OF 8086 BASIC IF SET
+	SHORTV=0		;"SMALL" VERSION OF 8086 BASIC IF SET (UNUSED)
 	TRUROM=1
 	SBC86=0			;SBC 86/02 BOARD?
 	SHORTJ=1		;USE INTRA-SEGMENT SHORT JUMPS
