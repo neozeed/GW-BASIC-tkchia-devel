@@ -115,8 +115,8 @@ m   macro
     purge m
     n
 endm
-?&s macro
-&endm
+s macro
+endm
 endm
 
 ;
@@ -149,4 +149,3 @@ R2      MACRO   RESWRD,RESDSP
 ENDM
 ;
 PAGE
-
