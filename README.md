@@ -1,6 +1,7 @@
 # Microsoft GW-BASIC Interpreter Source Code
 
-This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983.
+This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
+adjusted for assembling with available versions of the Microsoft Macro Assembler.
 
 ## Announcement blog
 https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
@@ -15,8 +16,8 @@ Pull requests for fixing the remaining compilation programs are welcomed.
 
 ## Building instructions
 Under [DOSBox](https://www.dosbox.com/) mount a directory containing:
-* this code
-* MASM 5.1A
+* This code
+* The Microsoft Macro Assembler (MASM) version 5.1A
 * The Microsoft make program that comes with MASM.
 
 Run `make makefile` to assemble the files.
