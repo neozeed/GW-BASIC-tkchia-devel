@@ -39,7 +39,7 @@
 	ESCCTL=0		;Escape Sequence processing in SCROUT
 	GWDBUG=0		;DEBUG statement (TEST VERSIONS ONLY)
 				; Support is in BINTRP.MAC and GWSTS.MAC
-				H
+	SNOUT=0			; (Added; TODO: Find and fix name)
 				;single precision numbers for output.
 				; 0 := 7 digits
 				; 1 := 6 digits
