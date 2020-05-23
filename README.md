@@ -6,12 +6,11 @@ adjusted for assembling with available versions of the Microsoft Macro Assembler
 ## Announcement blog
 https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 
-## Information
+## Progress
 
-Here I'm working to assemble the original code with Microsoft MASM 5.1A.
+All files can now be assembled with Microsoft MASM 5.1A.
 This is the version that currently seems to match the code most closely.
 
-Following some changes, all files have been assembled.
 The following identifiers cannot be resolved.
 `CLREOL`,
 `CLRSCN`,
@@ -76,24 +75,30 @@ The following identifiers cannot be resolved.
 `TRMCOM`,
 `TUPC`,
 `UPC`.
-Most appear to be missing from the source code.
+Most identifiers appear to be missing from the source code.
 
 
 Pull requests for fixing the remaining compilation programs are welcomed.
 
 ## Building instructions
-Under [DOSBox](https://www.dosbox.com/) mount a directory containing:
+Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * This code
-* The Microsoft Macro Assembler (MASM) version 5.1A
-* The Microsoft make program that comes with MASM.
+* The Microsoft Macro Assembler (MASM) version 5.1A (`masm.exe`).
+* The Microsoft make program that comes with MASM (`make.exe`).
 
 Run `make makefile` to assemble the files.
+Note the tools may leave behind  party-built executables or object files.
+If you want to rebuild them without changing the source code, you need
+to delete these files by hand.
 
 You can fetch MASM 5.1A from
-[this site](https://www.pcjs.org/software/pcx86/lang/microsoft/masm/4.00/).
-From the pull-down menu load and then save the corresponding disk.
-Mount the image on a Linux computer and copy the files across to
-your development directory.
+[this site](https://www.pcjs.org/software/pcx86/lang/microsoft/masm/5.10x/) as follows.
+* From the pull-down menu select `MS MAcro Assembler 5.10A (Update)`
+* Press the `Load` button to load the disk image into the emulator
+* Press the `Save` button to save the disk image to your computer
+* Copy  the saved disk image to a Linux computer
+* Mount the image using the command `sudo mount MASM51A-UPDATE.img /mnt`
+* Copy the files from `/mnt` to your development directory
 
 ## License
 
