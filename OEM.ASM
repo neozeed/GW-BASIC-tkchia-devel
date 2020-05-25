@@ -1,7 +1,7 @@
 	.RADIX  8		; To be safe
 
 CSEG	SEGMENT PUBLIC 'CODESG' 
-	ASSUME  CS:CSEG
+	ASSUME  CS:CSEG,DS:DSEG
 
 INCLUDE	OEM.H
 
@@ -12,6 +12,13 @@ Written by:     Stjepan Gros <stjepan.gros@gmail.com>
 
 A lot of screen related rutines use INT 10H services, so much of
 data can be inferred by reading documentation for INT 10H.
+
+Some routines disassembled by: TK Chia <https://github.com/tkchia>
+
+Many of the routines missing from the GW-BASIC code release are
+present in Microsoft's previous release of MS-DOS v1.25 BASICA.COM
+(https://github.com/microsoft/MS-DOS/tree/master/v1.25/bin),
+though only in binary form.  These are indicated.
         *
 	.SALL
 
@@ -204,12 +211,41 @@ PUBLIC	RECCOM
 RECCOM:			;Dummy function
 	RET
 
+; From BASICA.COM CSEG:2279H
+; Sets a pixel on the screen to the current colour
+; The desired pixel location and colour should be set first
+; using MAPXYC and SETATR
+;
+; INPUT
+;
+; OUTPUT
+;
+; REGISTERS AFFECTED
+;	AX, BX, SI, DI
+;
 PUBLIC	SETC
-SETC:			;Dummy function
+SETC:	MOV	SI,ES
+	MOV	DI,0B800H
+	MOV	ES,DI
+	MOV	BX,PIXOFS
+	MOV	AL,ES:[BX]
+	XOR	AL,ATRBYT
+	AND	AL,ATRMSK
+	XOR	ES:[BX],AL
+	MOV	ES,SI
 	RET
 
+; From BASICA.COM CSEG:234DH
+; Return number of bits per graphics pixel, or 0 if
+; graphics not supported for current screen mode
+;
+; INPUT
+;
+; OUTPUT
+;	AL = bits per pixel
+;
 PUBLIC	PIXSIZ
-PIXSIZ:			;Dummy function
+PIXSIZ:	MOV	AL,PIXBTS
 	RET
 
 PUBLIC	DOWNC
@@ -311,5 +347,23 @@ MAPSUP:			;Dummy function
 
 
 CSEG	ENDS
+
+DSEG	SEGMENT PUBLIC 'DATASG'
+	PUBLIC	PIXBTS,PIXOFS,ATRMSK
+
+PIXBTS	DB	?		; From BASICA.COM DS:0055H
+				; Number of bits per pixel; assumed to be 0
+				; (not graphics mode), 1, or 2
+
+PIXOFS	DW	?		; From BASICA.COM DS:06F3H
+				; Byte offset of current pixel into video
+				; memory
+
+ATRMSK	DB	?		; From BASICA.COM DS:06F5H
+				; Mask to apply to byte at 0B800H:[PIXOFS]
+				; to cover current pixel
+
+	EXTRN	ATRBYT:BYTE
+DSEG	ENDS
 	END
 
