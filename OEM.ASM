@@ -485,7 +485,7 @@ KEYINP:	MOV	AH,01H
 	RET
 KEYIN2:	XOR	AH,AH
 	INT	16H
-	CMP	AX,AX
+	TEST	AX,AX
 	RET
 
 ; Map control character for printing
