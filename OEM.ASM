@@ -75,6 +75,8 @@ SCRINP:			;Dummy function
 ;	AL		Character to output
 ;	DH, DL		Position
 ; OUTPUT
+;	FLAGS		CF=1 if inside escape sequence (?)
+;			CF=0 otherwise
 ;
 ; REGISTERS AFFECTED
 ;
@@ -99,6 +101,7 @@ SCROUT:	PUSH	DX
 	POP	BX
 	POP	CX
 	POP	DX
+	CLC
 	RET
 
 PUBLIC	STOREC
