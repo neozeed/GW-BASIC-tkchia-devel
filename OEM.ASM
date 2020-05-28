@@ -25,12 +25,30 @@ though only in binary form.  These are indicated.
 ;; Text screen group of subroutines
 
 ; OEM supplied Clear-Screen Routine
+;
+; INPUT
+;	AL		Per argument supplied to CLS command, i.e.
+;			0 Clear everything
+;			1 Clear graphics viewport (not in this version)
+;			2 Clear text window
+;
 PUBLIC	CLRSCN
-CLRSCN:
-	INT	3
-	CALL	SCNCLR
-	RET
-	DB	"CLRSCN"
+CLRSCN:	CMP	AL,2
+	JZ	CLRWDO
+	MOV	CH,WDOTOP
+	MOV	CL,WDOLFT
+	SUB	CX,0101H
+	MOV	DH,WDOBOT
+	MOV	DL,WDORGT
+	JMP	SHORT CLRALL
+CLRWDO:	XOR	CX,CX
+	MOV	DH,LINCNT
+	MOV	DL,CRTWID
+CLRALL:	SUB	DX,0101H
+	MOV	AX,0600H
+	MOV	BH,TXTATR
+	INT	10H
+	JMP	SCNCLR
 
 ; OEM supplied screen clear to end of line
 ; Clear from (DH,DL) to EOL (from GWSTS.ASM)
@@ -87,7 +105,7 @@ SCROUT:	PUSH	DX
 	PUSH	AX
 	XCHG    DH,DL
 	SUB	DX,0101H
-	MOV	BH,0
+	MOV	BH,ACTPAG
 	MOV	AH,2
 	INT	10H
 	POP	AX
@@ -137,12 +155,6 @@ NSETCX:			;Dummy function
 	INT	3
 	RET
 	DB	"NSETCX"
-
-PUBLIC	EDTMAP
-EDTMAP:			;Dummy function
-	INT	3
-	RET
-	DB	"EDTMAP"
 
 PUBLIC	DONOTE
 DONOTE:			;Dummy function
@@ -384,7 +396,7 @@ SETC:	MOV	SI,ES
 	MOV	ES,DI
 	MOV	BX,PIXOFS
 	MOV	AL,ES:[BX]
-	XOR	AL,ATRBYT
+	XOR	AL,ATRPAT
 	AND	AL,ATRMSK
 	XOR	ES:[BX],AL
 	MOV	ES,SI
@@ -488,6 +500,25 @@ KEYIN2:	XOR	AH,AH
 	TEST	AX,AX
 	RET
 
+; Map control character for editing
+;
+; INPUT
+;	AX		Control character
+; OUTPUT
+;	FLAGS		ZF=1 ignore character
+;			ZF=0 do not ignore
+;	AX		Mapped control character to process
+;
+; REGISTERS AFFECTED
+;
+PUBLIC	EDTMAP
+EDTMAP:
+	TEST	AH,AH
+	JNZ	NOEDF
+	CMP	AL,0EH
+	JZ	MAPEDF
+	; fall through
+
 ; Map control character for printing
 ;
 ; INPUT
@@ -541,6 +572,7 @@ CRTTRY:	MOV	AH,0FH			; Get current video mode
 	JMP	CRTTRY
 CRTOK:	MOV	CRTMOD,AL
 	MOV	VISPAG,BH
+	MOV	ACTPAG,BH
 	MOV	BL,07H			; Decide initial text colour to use
 	CMP	AL,03H
 	JBE	CRTOK2
@@ -553,10 +585,11 @@ CRTOK:	MOV	CRTMOD,AL
 CRTOK2:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
 	MOV	CL,25D			; Assume 25 rows
-	MOV	TXTATR,07H
+	MOV	TXTATR,BL
 	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
-	CALL	CLRSCN			; Now really clear the screen
+	MOV	AL,0			; Now really clear the screen
+	CALL	CLRSCN
 	POP	BP
 	POP	DI
 	POP	SI
@@ -579,10 +612,19 @@ SCRSTT:			;Dummy function
 	DB	"SCRSTT"
 
 PUBLIC	CSRDSP
-CSRDSP:
-	INT	3
+CSRDSP:	PUSH	AX
+	PUSH	BX
+	PUSH	DX
+	MOV	BH,ACTPAG
+	MOV	DH,CSRY
+	MOV	DL,CSRX
+	SUB	DX,0101H
+	MOV	AH,2
+	INT	10H
+	POP	DX
+	POP	BX
+	POP	AX
 	RET
-	DB	"CSRDSP"
 
 PUBLIC	SETATR
 SETATR:			;Dummy function
@@ -665,9 +707,16 @@ ATRMSK	DB	?		; From BASICA.COM DS:06F5H
 				; Mask to apply to byte at 0B800H:[PIXOFS]
 				; to cover current pixel
 
+ATRPAT	DB	?		; From BASICA.COM DS:06F6H
+				; Bit pattern for current graphics
+				; attribute, to be masked with ATRMSK
+
 CBFSEG	DW	?		; Segment of COM buffer (i.e. CBFSEG:0)
 
-	EXTRN	ATRBYT:BYTE,ACTPAG:BYTE,CRTWID:BYTE
+	EXTRN	ACTPAG:BYTE,CRTWID:BYTE
+	EXTRN	WDOTOP:BYTE,WDOLFT:BYTE,WDOBOT:BYTE,WDORGT:BYTE
+	EXTRN	CRTWID:BYTE,LINCNT:BYTE
+	EXTRN	CSRX:BYTE,CSRY:BYTE
 DSEG	ENDS
 
 SSEG	SEGMENT STACK 'STACKSG'
