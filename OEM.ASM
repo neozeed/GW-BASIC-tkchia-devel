@@ -75,17 +75,20 @@ SCROLL:			;Dummy function
 ; OEM supplied screen input(read character)
 ;
 ; INPUT
-;	DH,DL		Coordinates, DH->Row, DL->Column
+;	DH,DL		Coordinates, DH->Column, DL->Row
 ;	CF=0		Indicates call is from Screen Editor
 ; OUTPUT
 ;	X=Character at (DH,DL)
 ; REGISTERS AFFECTED
 
 PUBLIC	SCRINP
-SCRINP:			;Dummy function
-	INT	3
+SCRINP:	CALL	CSRHAK
+	PUSH	BX
+	MOV	AH,08H
+	MOV	BH,ACTPAG
+	INT	10H
+	POP	BX
 	RET
-	DB	"SCRINP"
 
 ; OEM supplied character output
 ;
@@ -103,13 +106,7 @@ SCROUT:	PUSH	DX
 	PUSH	CX
 	PUSH	BX
 	PUSH	AX
-	XCHG    DH,DL
-	SUB	DX,0101H
-	MOV	BH,ACTPAG
-	MOV	AH,2
-	INT	10H
-	POP	AX
-	PUSH	AX
+	CALL	CSRHAK
 	MOV	CX,1
 	MOV	BH,ACTPAG
 	MOV	BL,TXTATR
@@ -120,6 +117,24 @@ SCROUT:	PUSH	DX
 	POP	CX
 	POP	DX
 	CLC
+	RET
+
+; Internal function: pretend to the BIOS that the text output cursor is at
+; (DH, DL), but without actually moving the hardware cursor
+;
+CSRHAK:	PUSH	BX
+	PUSH	DX
+	PUSH	ES
+	XOR	BX,BX
+	MOV	ES,BX
+	MOV	BL,ACTPAG
+	SHR	BX,1
+	XCHG	DH,DL
+	SUB	DX,0101H
+	MOV	ES:0450H[BX],DX
+	POP	ES
+	POP	DX
+	POP	BX
 	RET
 
 PUBLIC	STOREC
