@@ -979,7 +979,7 @@ SIN20:
 ; At this point the FAC has the remainder of the angle / 2*PI
 ;
 SIN30:
-	MOV	AL,LOW OFFSET $FAC
+	MOV	AL,BYTE PTR $FAC
 	OR	AL,AL
 	JZ	SIN31
 	ADD	BYTE PTR $FAC,LOW 2	; FAC = FAC*4 = Reduce angle / PI/2
