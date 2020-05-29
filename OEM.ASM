@@ -576,11 +576,11 @@ RIGHTC:			;Dummy function
 	RET
 	DB	"RIGHTC"
 
+; Do OEM-specific initialization of the data segment after it has been moved
+; to its final location
+;
 PUBLIC	SEGINI
-SEGINI:			;Dummy function
-	INT	3
-	RET
-	DB	"SEGINI"
+SEGINI:	RET				; Nothing to do
 
 PUBLIC	GTASPC
 GTASPC:			;Dummy function
