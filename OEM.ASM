@@ -20,7 +20,7 @@ though only in binary form.  These are indicated.
         *
 	.SALL
 
-	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR
+	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR
 
 ;; Text screen group of subroutines
 
@@ -45,32 +45,229 @@ CLRWDO:	XOR	CX,CX
 	MOV	DH,LINCNT
 	MOV	DL,CRTWID
 CLRALL:	SUB	DX,0101H
+	CALL	FILATR
+	MOV	BH,AL
 	MOV	AX,0600H
-	MOV	BH,TXTATR
 	INT	10H
 	JMP	SCNCLR
+
+; Internal routine: return in AL the screen attribute to use for INT 10H
+; text blanking operations
+;
+FILATR:	PUSH	CX
+	MOV	AL,1
+	MOV	CL,CRTMOD
+	SHL	AL,CL
+	TEST	AL,01110000B
+	MOV	AL,TXTATR
+	JZ	FILAT2
+	MOV	CL,4
+	SHR	AL,CL
+FILAT2:	POP	CX
+	RET
 
 ; OEM supplied screen clear to end of line
 ; Clear from (DH,DL) to EOL (from GWSTS.ASM)
 PUBLIC	CLREOL
-CLREOL:
-	INT	3
+CLREOL:	PUSH	AX
+	PUSH	BX
+	PUSH	CX
+	PUSH	DX
+	XCHG	DH,DL
+	SUB	DX,0101H
+	MOV	CX,DX
+	MOV	DL,CRTWID
+	DEC	DX
+	CALL	FILATR
+	MOV	BH,AL
+	MOV	AX,0600H
+	INT	10H
+	POP	DX
+	POP	CX
+	POP	BX
+	POP	AX
 	RET
-	DB	"CLREOL"
 
 ; OEM supplied SCROLL routine
+; Does not blank out parts of screen that are not scrolled into
 ;
 ; INPUT
-;	AX
+;	AX		(AH, AL) = Top left corner (column, row) of source
+;				   region
+;	BX		(BH, BL) = Top left corner of destination region
+;	CX		(CH, CL) = Dimensions of area to move
 ; OUTPUT
 ;
 ; REGISTERS AFFECTED
 ;
 PUBLIC	SCROLL
-SCROLL:			;Dummy function
-	INT	3
+SCROLL:	PUSH	BX
+	PUSH	CX
+	PUSH	DX
+	PUSH	SI
+	PUSH	DI
+	PUSH	BP
+	PUSH	DS
+	PUSH	ES
+	PUSHF
+	PUSH	AX
+	MOV	DL,CRTMOD
+	XOR	DH,DH
+	MOV	SI,DX
+	SHL	DX,1
+	SHL	DX,1
+	ADD	DX,SI
+	MOV	BP,DX
+	ADD	BP,OFFSET CSEG:SCLTAB
+	MOV	DX,AX
+	CLC
+	CALL	POSOFF
+	MOV	SI,DX			; SI = starting source offset
+	MOV	DX,BX
+	CLC
+	CALL	POSOFF
+	MOV	DI,DX			; DI = starting destination offset
+	XOR	AH,AH
+	PUSH	CX
+	MOV	AL,CH
+	XOR	AH,AH
+	MOV	CL,CS:3[BP]
+	SHL	AX,CL			; AX = bytes to move per graphics row
+	POP	CX
+	MOV	DL,CS:2[BP]
+	XOR	DH,DH			; DX = how much SI and DI should
+	SUB	DX,AX			; skip after each row
+	CLD
+	CMP	SI,DI
+	JNB	SCLFWD
+	POP	SI			; If moving backwards, recompute
+	PUSH	SI			; SI, DI, and DX...
+	PUSH	DX
+	MOV	DX,SI
+	ADD	DX,CX
+	SUB	DX,0101H
+	STC
+	CALL	POSOFF
+	MOV	SI,DX
+	MOV	DX,BX
+	ADD	DX,CX
+	SUB	DX,0101H
+	STC
+	CALL	POSOFF
+	MOV	DI,DX
+	POP	DX
+	NEG	DX
+	STD
+SCLFWD:	MOV	BL,CL
+	XOR	BH,BH
+	MOV	CL,CS:4[BP]
+	SHL	BX,CL			; BX = count of graphics rows to move
+	MOV	CH,CS:0[BP]		; Now move even-numbered graphics rows
+	XOR	CL,CL
+	MOV	DS,CX
+	MOV	ES,CX
+	PUSH	SI
+	PUSH	DI
+	PUSH	BX
+SCLOT1:	MOV	CX,AX
+ REP	MOVSB
+	ADD	SI,DX
+	ADD	DI,DX
+	DEC	BX
+	JNZ	SCLOT1
+	POP	BX
+	POP	DI
+	POP	SI
+	MOV	CH,CS:1[BP]		; Move odd-numbered graphics rows if
+	JCXZ	SCLFIN			; applicable
+	MOV	DS,CX
+	MOV	ES,CX
+SCLOT2:	MOV	CX,AX
+ REP	MOVSB
+	ADD	SI,DX
+	ADD	DI,DX
+	DEC	BX
+	JNZ	SCLOT2
+SCLFIN:	POP	AX
+	POPF
+	POP	ES
+	POP	DS
+	POP	BP
+	POP	DI
+	POP	SI
+	POP	DX
+	POP	CX
+	POP	BX
 	RET
-	DB	"SCROLL"
+
+; Internal data structure: information for scrolling a portion of the screen,
+; used by SCROLL
+;
+SCLTAB	LABEL	BYTE		; For INT 10H video mode 0:
+	DB	0B8H		; * high byte of video memory address, for
+				;   even-numbered graphics rows
+	DB	0		; * high byte of video memory address, for
+				;   odd-numbered graphics rows, or 0 if
+				;   video is not interlaced
+	DB	80D		; * number of bytes per graphics row
+	DB	1		; * shift for number of bytes per text column
+	DB	0		; * shift for number of graphics rows per
+				;   text row
+	DB	0B8H,0,80D,1,0		; For mode 1
+	DB	0B8H,0,160D,1,0		; For mode 2
+	DB	0B8H,0,160D,1,0		; For mode 3
+	DB	0B8H,0BAH,80D,1,2	; For mode 4
+	DB	0B8H,0BAH,80D,1,2	; For mode 5
+	DB	0B8H,0BAH,80D,0,2	; For mode 6
+	DB	0B8H,0,80D,1,0		; For mode 7
+
+; Internal function: convert a text (column, row), in the active display
+; page, to an offset into video memory
+;
+; INPUT
+;	CS:[BP]		SCLTAB element for current video mode
+;	DX		(DH, DL) = (column, row)
+;	FLAGS		CF=0 Return offset of first byte
+;			CF=1 Return offset of last byte
+;
+; OUTPUT
+;	DX		Offset into video memory
+;
+POSOFF:	PUSH	AX
+	PUSH	CX
+	PUSH	ES
+	PUSHF
+	SUB	DX,0101H
+	XCHG	DH,DL
+	MOV	AL,CS:2[BP]
+	MUL	DH
+	MOV	CL,CS:4[BP]
+	SHL	AX,CL
+	XOR	DH,DH
+	MOV	CL,CS:3[BP]
+	SHL	DX,CL
+	ADD	DX,AX
+	XOR	CX,CX			; Remember to add the page offset...
+	MOV	ES,CX
+	ADD	DX,ES:044EH
+	POPF
+	JNC	POSOF2
+	MOV	AL,CS:2[BP]
+	XOR	AH,AH
+	MOV	CL,CS:4[BP]
+	SHL	AX,CL
+	SUB	AL,CS:2[BP]
+	SBB	AH,0
+	ADD	DX,AX
+	MOV	AX,1
+	MOV	CL,CS:3[BP]
+	SHL	AX,CL
+	DEC	AX
+	ADD	DX,AX
+POSOF2:	POP	ES
+	POP	CX
+	POP	AX
+	RET
 
 ; OEM supplied screen input(read character)
 ;
@@ -87,7 +284,11 @@ SCRINP:	CALL	CSRHAK
 	MOV	AH,08H
 	MOV	BH,ACTPAG
 	INT	10H
-	POP	BX
+	XOR	AH,AH
+	TEST	AL,AL
+	JNZ	SCRIN2
+	MOV	AL," "
+SCRIN2:	POP	BX
 	RET
 
 ; OEM supplied character output
@@ -447,7 +648,7 @@ LCPY:			;Dummy function
 ; INPUT
 ;
 ; OUTPUT
-;	DS:[BX]		Number of function keys to display, number of
+;	DS:[BX]		Number of function keys to display; number of
 ;			characters from each function key macro to display;
 ;			index of first function key to display
 ;
@@ -462,11 +663,12 @@ FKYFM2:	POP	AX
 	RET
 
 ;Do OEM specific termination processing (from GIODSK.ASM)
+;
 PUBLIC	GWTERM
-GWTERM:			;Dummy function
-	INT	3
-	RET
-	DB	"GWTERM"
+GWTERM:	MOV	BH,VISPAG		; Force the visible page to become
+	MOV	ACTPAG,BH		; the active page
+	JMP	SCNTRM			; Hand over to the platform-
+					; -independent callback
 
 ; Return graphics dimensions for current screen
 ;
@@ -527,12 +729,18 @@ KEYIN2:	XOR	AH,AH
 ; REGISTERS AFFECTED
 ;
 PUBLIC	EDTMAP
-EDTMAP:
-	TEST	AH,AH
-	JNZ	NOEDF
-	CMP	AL,0EH
-	JZ	MAPEDF
-	; fall through
+EDTMAP:	CMP	AX,001FH
+	JA	NOEDF
+	PUSH	AX
+	PUSH	CX
+	CMP	AL,0FH
+	MOV	CL,AL
+	JA	EDTM1X
+	MOV	AX,0111111111101100B	; Ask to specially handle ^B, ^C,
+	JMP	SHORT TSTEDF		; ^E...^N
+EDTM1X:	SUB	CL,10H
+	MOV	AX,1111100000000100B	; Ask to specially handle ^R, ^[...^_
+	JMP	SHORT TSTEDF
 
 ; Map control character for printing
 ;
@@ -546,14 +754,22 @@ EDTMAP:
 ; REGISTERS AFFECTED
 ;
 PUBLIC	PRTMAP
-PRTMAP:	TEST	AH,AH
-	JNZ	NOEDF
-	CMP	AL,09H			; Ask to specially handle HT, LF, CR
-	JZ	MAPEDF
-	CMP	AL,0AH
-	JZ	MAPEDF
-	CMP	AL,0DH
-	JNZ	NOEDF
+PRTMAP:	CMP	AX,001FH
+	JA	NOEDF
+	PUSH	AX
+	PUSH	CX
+	CMP	AL,0FH
+	MOV	CL,AL
+	JA	PRTM1X
+	MOV	AX,0011111010000000B	; Ask to specially handle ^G, ^I, ^J,
+	JMP	SHORT TSTEDF		; ^K, ^L, ^M
+PRTM1X:	SUB	CL,10H
+	MOV	AX,1111000000000000B	; Ask to specially handle ^\, ^], ^^,
+TSTEDF:	SHR	AX,CL			; ^_
+	TEST	AL,1
+	POP	CX
+	POP	AX
+	JZ	NOEDF
 MAPEDF:	MOV	AH,0FFH
 NOEDF:	TEST	AX,AX
 	RET
@@ -700,8 +916,10 @@ CSEG	ENDS
 DSEG	SEGMENT PUBLIC 'DATASG'
 	PUBLIC	PIXBTS,PIXOFS,ATRMSK
 
+				; See FKYFMT above
 FKEY40	DB	6D,5D,1D	; (?!?) Function key display format for 40x25
 FKEY80	DB	6D,10D,1D	; (?!?) Function key display format for 80x25
+
 
 CRTMOD	DB	?		; (?) Current screen mode
 VISPAG	DB	?		; (?) Current visible display page
