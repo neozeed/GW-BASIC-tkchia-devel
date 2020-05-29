@@ -653,14 +653,11 @@ LCPY:			;Dummy function
 ;			index of first function key to display
 ;
 PUBLIC	FKYFMT
-FKYFMT:	PUSH	AX
-	MOV	AL,CRTWID
-	MOV	BX,OFFSET FKEY40
-	CMP	AL,80D
+FKYFMT:	MOV	BX,OFFSET FKEY40
+	CMP	CRTWID,80D
 	JB	FKYFM2
 	MOV	BX,OFFSET FKEY80
-FKYFM2:	POP	AX
-	RET
+FKYFM2:	RET
 
 ;Do OEM specific termination processing (from GIODSK.ASM)
 ;
@@ -694,9 +691,26 @@ GRPSIZ:	PUSH	AX
 GRPSZ1:	POP	AX
 	RET
 
+; Switch between modes in the function key display (?)
+; This version of GW-BASIC apparently allows a user to do this through ^T
+;
+; INPUT
+;	FLAGS		ZF=0 Function keys currently displayed
+;			ZF=1 Not
+; OUTPUT
+;	FLAGS		ZF=0 Display function keys
+;			ZF=1 Do not display function keys
+;
 PUBLIC	FKYADV
-FKYADV:			;Dummy function
-	INT	3
+FKYADV:	JZ	LABON
+	CMP	CRTWID,80D
+	JNB	LABOFF
+	XOR	BYTE PTR FKEY40+2,1 XOR 6
+	CMP	BYTE PTR FKEY40+2,1
+	RET
+LABOFF:	CMP	SP,SP
+	RET
+LABON:	TEST	SP,SP
 	RET
 
 ;
@@ -739,8 +753,8 @@ EDTMAP:	CMP	AX,001FH
 	MOV	AX,0111111111101100B	; Ask to specially handle ^B, ^C,
 	JMP	SHORT TSTEDF		; ^E...^N
 EDTM1X:	SUB	CL,10H
-	MOV	AX,1111100000000100B	; Ask to specially handle ^R, ^[...^_
-	JMP	SHORT TSTEDF
+	MOV	AX,1111100000010100B	; Ask to specially handle ^R, ^T,
+	JMP	SHORT TSTEDF		; ^[...^_
 
 ; Map control character for printing
 ;
