@@ -394,8 +394,6 @@ PEKFLT:			;Dummy function
 ;
 ; INPUT
 ;	CX		Segment for COM buffer
-;	AL		Character to output
-;	DH, DL		Position
 ; OUTPUT
 ;	FLAGS		CF=0 OK
 ;			CF=1 Out of memory
