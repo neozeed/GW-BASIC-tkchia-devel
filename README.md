@@ -8,10 +8,19 @@ https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 
 ## Progress
 
+### Assembling
+
 All files can now be assembled with Microsoft MASM 5.1A.
 This is the version that currently seems to match the code most closely.
 
-The following identifiers cannot be resolved.
+### Implementation
+
+The interpreter is semi-working, but large parts of the platform-specific
+support code are still missing or incomplete.
+
+Specifically, [dspinellis](https://github.com/dspinellis/GW-BASIC) observed
+that the following functions were missing from the original source code
+release, and have to be added:
 `CLREOL`,
 `CLRSCN`,
 `CSRATR`,
@@ -75,16 +84,21 @@ The following identifiers cannot be resolved.
 `TRMCOM`,
 `TUPC`,
 `UPC`.
-Most identifiers appear to be missing from the source code.
 
+Some of these have been implemented in the new module `OEM.ASM`.
 
-Pull requests for fixing the remaining compilation programs are welcomed.
+Many, but not all, of the needed routines, such as `SETC` and `MAPXYC`,
+ turn out to be present in
+`BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
+release](https://github.com/microsoft/MS-DOS).  However, `BASICA.COM` is
+only released in binary form, so some analysis is needed to extract the
+routines.
 
 ## Building instructions
 Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * This code
 * The Microsoft Macro Assembler (MASM) version 5.1A (`masm.exe`).
-* The Microsoft make program that comes with MASM (`make.exe`).
+* The Microsoft MAKE and LINK programs that come with MASM (`make.exe`, `link.exe`).
 
 Run `make makefile` to assemble the files.
 Note the tools may leave behind  party-built executables or object files.

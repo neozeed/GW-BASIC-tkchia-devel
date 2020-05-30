@@ -17,6 +17,9 @@ Many of the routines missing from the GW-BASIC code release are
 present in Microsoft's previous release of MS-DOS v1.25 BASICA.COM
 (https://github.com/microsoft/MS-DOS/tree/master/v1.25/bin),
 though only in binary form.  These are indicated.
+
+Many other routines are not even in BASICA.COM though, and have to be
+written from scratch.
         *
 	.SALL
 
