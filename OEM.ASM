@@ -51,7 +51,7 @@ CLRALL:	SUB	DX,0101H
 	INT	10H
 	JMP	SCNCLR
 
-; Internal routine: return in AL the screen attribute to use for INT 10H
+; Internal function: return in AL the screen attribute to use for INT 10H
 ; text blanking operations
 ;
 FILATR:	PUSH	CX
@@ -425,11 +425,30 @@ MAPXYC:			;Dummy function
 	RET
 	DB	"MAPXYC"
 
+; Map keystrokes to values for INKEY$
+;
+; INPUT
+;	FLAGS		ZF=1 (?) Impossible
+;			ZF=0, CF=0 One-byte character key or IBM scan code
+;			ZF=0, CF=1 (?) Special key sequence (e.g. ^Break)
+;	AX, DX		Keystroke, in format similar to KEYINP output (?)
+; OUTPUT
+;	FLAGS		ZF=1 Discard keystroke
+;			ZF=0 CF=0 Return keystroke as 1 byte
+;			ZF=0 CF=1 Return keystroke as 2 bytes
+;	AX		Mapped keystroke
+;
 PUBLIC	INKMAP
-INKMAP:			;Dummy function
-	INT	3
+INKMAP:	JC	INKZAP
+	CMP	AL,0FEH
+	CLC
+	JNZ	INKSNG
+	MOV	AX,DX
+	TEST	SP,SP
+	STC
 	RET
-	DB	"INKMAP"
+INKZAP:	CMP	SP,SP
+INKSNG:	RET
 
 ; Set foreground and background colours for text or graphics operations
 ;
@@ -711,6 +730,37 @@ LABOFF:	CMP	SP,SP
 LABON:	TEST	SP,SP
 	RET
 
+; Internal data structure: mapping of IBM scan codes to "soft key" codes
+;
+	EDCTLK	EQU	"K"-"@"+80H	; "^K"
+	EDCTLN	EQU	"N"-"@"+80H	; "^N"
+	EDCTLR	EQU	"R"-"@"+80H	; "^R"
+	EDCTLBS	EQU	"\"-"@"+80H	; "^\"
+	EDCTLRB	EQU	"]"-"@"+80H	; "^]"
+	EDCTLCA	EQU	"^"-"@"+80H	; "^^"
+	EDCTLUS	EQU	"_"-"@"+80H	; "^_"
+	EDDEL	EQU	" "+80H		; Special "delete a character" code
+	SCCMIN	EQU	10H
+SCCMAP:	DB	"Q",	"W",	"E",	"R"		; 10H Alt-Q etc.
+	DB	"T",	"Y",	"U",	"I"		; 14H Alt-T etc.
+	DB	"O",	"P",	0,	0		; 18H Alt-O, Alt-P
+	DB	0,	0,	"A",	"S"		; 1CH Alt-A, Alt-S
+	DB	"D",	"F",	"G",	"H"		; 20H Alt-D etc.
+	DB	"J",	"K",	"L",	0		; 24H Alt-J etc.
+	DB	0,	0,	0,	0		; 28H Alt-Quote etc.
+	DB	"Z",	"X",	"C",	"V"		; 2CH Alt-Z etc.
+	DB	"B",	"N",	"M",	0		; 30H Alt-B etc.
+	DB	0,	0,	0,	0		; 34H Alt-period etc.
+	DB	0,	0,	0,	" "		; 38H F1
+	DB	" "+1D,	" "+2D,	" "+3D,	" "+4D		; 3CH F2--F5
+	DB	" "+5D,	" "+6D,	" "+7D,	" "+8D		; 40H F6--F9
+	DB	0,	0,	0,	EDCTLK		; 47H Home
+	DB	EDCTLCA,0,	0,	EDCTLRB		; 48H Up, [PgUp,] Left
+	DB	0,	EDCTLBS,0,	EDCTLN		; 4CH Right, End
+	DB	EDCTLUS,0,	EDCTLR,	EDDEL		; 50H Down, [PgDn],
+							;     Ins, Del
+	SCCMAX	EQU	$-SCCMAP+SCCMIN-1
+
 ;
 ; RETURN
 ;	FLAGS		ZF=1 no key available
@@ -726,7 +776,33 @@ KEYINP:	MOV	AH,01H
 	RET
 KEYIN2:	XOR	AH,AH
 	INT	16H
-	TEST	AX,AX
+	TEST	AL,AL
+	JZ	KEYSCC
+	MOV	AH,0			; Normal key with an ASCII code ---
+	TEST	SP,SP			; just return
+	RET
+KEYSCC:	XCHG	AH,AL			; Try to map a special key to GIOKYB's
+	CMP	AL,SCCMIN		; internal code; if this does not
+	JB	KEYSC2			; work, just return it as an IBM
+	CMP	AL,SCCMAX		; scan code
+	JA	KEYSC2
+	PUSH	BX
+	MOV	BX,OFFSET CSEG:SCCMAP-SCCMIN
+	XLAT	CS:[BX]
+	POP	BX
+	TEST	AL,AL
+	JZ	KEYSC2
+	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
+	SBB	AH,AH			;		80H--0FFH to 0FFxxH
+	SHR	AL,1
+	OR	AH,80H
+	TEST	SP,SP
+	STC
+	RET
+KEYSC2:	MOV	DX,AX			; IBM scan code
+	MOV	AX,0FEH
+	TEST	SP,SP
+	CLC
 	RET
 
 ; Map control character for editing
@@ -783,7 +859,7 @@ TSTEDF:	SHR	AX,CL			; ^_
 	POP	AX
 	JZ	NOEDF
 MAPEDF:	MOV	AH,0FFH
-NOEDF:	TEST	AX,AX
+NOEDF:	TEST	SP,SP
 	RET
 
 PUBLIC	RDPEN
@@ -917,11 +993,16 @@ RDSTIK:			;Dummy function
 	RET
 	DB	"RDSTIK"
 
+; Map "super shift key" (Alt-A ... Alt-Z) to a keyword in the keyword table
+;
+; INPUT
+;	AL		(?) The letter for the key ("A" ... "Z")
+; OUTPUT
+;	CH		Index into GW-BASIC's keyword table for the letter
+;
 PUBLIC	MAPSUP
-MAPSUP:			;Dummy function
-	INT	3
+MAPSUP:	MOV	CH,1
 	RET
-	DB	"MAPSUP"
 
 CSEG	ENDS
 
