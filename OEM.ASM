@@ -757,7 +757,7 @@ SCCMAP:	DB	"Q",	"W",	"E",	"R"		; 10H Alt-Q etc.
 	DB	0,	0,	0,	" "		; 38H F1
 	DB	" "+1D,	" "+2D,	" "+3D,	" "+4D		; 3CH F2--F5
 	DB	" "+5D,	" "+6D,	" "+7D,	" "+8D		; 40H F6--F9
-	DB	0,	0,	0,	EDCTLK		; 47H Home
+	DB	" "+9D,	0,	0,	EDCTLK		; 47H F10, Home
 	DB	EDCTLCA,0,	0,	EDCTLRB		; 48H Up, [PgUp,] Left
 	DB	0,	EDCTLBS,0,	EDCTLN		; 4CH Right, End
 	DB	EDCTLUS,0,	EDCTLR,	EDDEL		; 50H Down, [PgDn],
