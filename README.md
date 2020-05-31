@@ -13,6 +13,9 @@ https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 All files can now be assembled with Microsoft MASM 5.1A.
 This is the version that currently seems to match the code most closely.
 
+It is now also possible to cross-assemble the source files ― with some
+preprocessing ― using JWasm and JWlink.
+
 ### Implementation
 
 The interpreter is semi-working, but large parts of the platform-specific
@@ -95,6 +98,15 @@ only released in binary form, so some analysis is needed to extract the
 routines.
 
 ## Building instructions
+
+### With JWasm and JWlink
+
+* You need a system with AWK and GNU Make.  (AWK is used to run the script `jwasmify.awk` to munge the original sources into a form JWasm accepts.)
+* Build or download binaries for [JWasm](https://github.com/JWasm/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
+* Run `make -f Makefile.jw`.
+
+### With MASM 5.10A
+
 Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * This code
 * The Microsoft Macro Assembler (MASM) version 5.1A (`masm.exe`).
