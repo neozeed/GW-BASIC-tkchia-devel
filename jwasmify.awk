@@ -65,7 +65,7 @@ BEGIN {
 	cn_words["ERRNF"] = 1
 	cn_words["ERROD"] = 1
 	cn_words["KYBQSZ"] = 1
-	cn_words["OPCNT"]= 1
+	cn_words["OPCNT"] = 1
 	cn_words["T_ON"] = 1
 	cn_words["T_REQ"] = 1
 
@@ -82,6 +82,7 @@ BEGIN {
 	words_re = words_re "DB\tOFFSET|MOVS\t\\?CSLAB,|PWR2PX=)"
 
 	# Do this for all modules, including the extra OEM.ASM.
+	print "; [ Munged by jwasmify.awk " strftime() " ]"
 	print "OPTION NOKEYWORD: <LENGTH>"
 }
 
@@ -92,7 +93,6 @@ BEGIN {
 /\[ This translation created .* \]/ {
 	really_munge = 1
 	print
-	print "; [ Munged by jwasmify.awk " strftime() " ]"
 	next
 }
 
@@ -129,7 +129,7 @@ $0 ~ words_re {
 			    $0 ~ "^" id_re ":" ws_re word ws_re ||
 			    $0 ~ "^" id_re ":" ws_re word "$")
 				continue
-			if (word == "LABEL" && $0 !~ "LABEL=")
+			if (word == "LABEL" && $0 !~ /LABEL=/)
 				continue
 		}
 
