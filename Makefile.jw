@@ -5,7 +5,7 @@ RM = rm -f
 default: GWBASIC.EXE
 
 clean:
-	$(RM) *.OBJ *.EXE *.MAP *.TMP
+	$(RM) *.OBJ *.EXE *.MAP *.TMP *.ERR *~
 
 GWBASIC.EXE: GWDATA.OBJ ADVGRP.OBJ BIMISC.OBJ BIPRTU.OBJ BIPTRG.OBJ \
 	BISTRS.OBJ CALL86.OBJ DSKCOM.OBJ FIVEO.OBJ GENGRP.OBJ GIO86.OBJ \
@@ -16,10 +16,10 @@ GWBASIC.EXE: GWDATA.OBJ ADVGRP.OBJ BIMISC.OBJ BIPRTU.OBJ BIPTRG.OBJ \
 	$(LINK) format dos $(+:%=file %) name $@ option dosseg,map=GWBASIC.MAP
 
 %.OBJ: %.ASM jwasmify.awk
-	$(RM) $(<:.ASM=.ERR)
-	awk -f ./jwasmify.awk $< >$(<:.ASM=.TMP)
-	$(ASM) -Zm -fpc -Fo$@ -Fw$(<:.ASM=.ERR) $(<:.ASM=.TMP)
-	$(RM) $(<:.ASM=.TMP)
+	$(RM) $(@:.OBJ=.ERR)
+	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
+	$(ASM) -Zm -fpc -Fo$@ -Fw$(@:.OBJ=.ERR) $(@:.OBJ=.TMP)
+	$(RM) $(@:.OBJ=.TMP)
 
 MATH.ASM: MATH1.ASM MATH2.ASM
 	cat $^ >$@
