@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 #
 # Modify an .ASM source file from Microsoft's GW-BASIC source release to
-# allow JWasm to assemble it without errors.  This does not work yet.
+# allow JWasm to assemble it without errors.
 #
 #	Permission is hereby granted, free of charge, to any person
 #	obtaining a copy of this software and associated documentation files
@@ -24,9 +24,10 @@
 #	SOFTWARE.
 
 BEGIN {
-	# Try to only munge source code from the original GW-BASIC source
-	# files.  Leave additional modules (such as OEM.ASM) alone.
-	munge = 0
+	# Try to only really munge source code from the original GW-BASIC
+	# source files.  For additional modules (such as OEM.ASM), just
+	# adding a few extra pseudo-ops for JWasm and JWlink will do.
+	really_munge = 0
 
 	# Initialize the table of keywords which we might want JWasm to
 	# treat as identifiers.
@@ -79,6 +80,9 @@ BEGIN {
 		words_re = words_re word "|"
 	}
 	words_re = words_re "DB\tOFFSET|MOVS\t\\?CSLAB,|PWR2PX=)"
+
+	# Do this for all modules, including the extra OEM.ASM.
+	print "OPTION NOKEYWORD: <LENGTH>"
 }
 
 {
@@ -86,15 +90,21 @@ BEGIN {
 }
 
 /\[ This translation created .* \]/ {
-	munge = 1
+	really_munge = 1
 	print
 	print "; [ Munged by jwasmify.awk " strftime() " ]"
-	print "OPTION NOKEYWORD: <LENGTH>"
 	next
 }
 
 $0 ~ words_re {
-	if (!munge) {
+	# JWlink (following the original Watcom Linker) will only place the
+	# data segment separate from the code segment, if only the former is
+	# in DGROUP, _and_ if `dosseg' is specified to the linker (see
+	# Makefile.jw).  And, we might need this hack for OEM.ASM too.  Argh!
+	if ($0 ~ /^DSEG SEGMENT /)
+		print "DGROUP GROUP DSEG"
+
+	if (!really_munge) {
 		print
 		next
 	}
@@ -105,13 +115,6 @@ $0 ~ words_re {
 	gsub(/\tMOVS\t\?CSLAB,/, "\tMOVS\t$FACLO,")	# MATH1.ASM & MATH2.ASM
 	if ($0 ~ /^PWR2PX=/)				# ADVGRP.ASM
 		print "MELCO=0"
-
-	# JWlink (following the original Watcom Linker) will only place the
-	# data segment separate from the code segment, if only the former is
-	# in DGROUP, _and_ if `dosseg' is specified to the linker (see
-	# Makefile.jw).  Argh!
-	if ($0 ~ /^DSEG SEGMENT /)
-		print "DGROUP GROUP DSEG"
 
 	for (word in id_words) {
 		# For a word such as PUSHF, we need to spot these cases:

@@ -71,7 +71,7 @@ ENDM
 
 DERMAK  MACRO   X
         PUBLIC  DER&X
-DER&X:  MOV     DL,OFFSET ERR&X
+DER&X:  MOV     DL,LOW OFFSET ERR&X
         DB      271O                    ; LXI B over next error
 ENDM
 ;
