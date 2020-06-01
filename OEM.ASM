@@ -950,11 +950,34 @@ CSRDSP:	PUSH	AX
 	POP	AX
 	RET
 
+; From BASICA.COM CSEG:22E6H, with a change to set the carry flag correctly
+; Set the pixel colour to use for the next graphics operation
+;
+; INPUT
+;	AL		Pixel colour
+; OUTPUT
+;	FLAGS		CF=0 Colour set successfully
+;			CF=1 Error
+; REGISTERS AFFECTED
+;	AX, CX
+;
 PUBLIC	SETATR
-SETATR:			;Dummy function
-	INT	3
+SETATR:	CMP	AL,4
+	JNB	ATRERR
+	TEST	PIXBTS,1
+	JZ	ATR2BT
+	AND	AL,1
+	NEG	AL
+	MOV	ATRPAT,AL
+	CLC
 	RET
-	DB	"SETATR"
+ATR2BT:	MOV	CL,01010101B
+	MUL	CL
+	MOV	ATRPAT,AL
+	CLC
+	RET
+ATRERR:	STC
+	RET
 
 PUBLIC	PNTINI
 PNTINI:			;Dummy function
