@@ -78,7 +78,7 @@ BEGIN {
 	words_re = "("
 	for (word in id_words)
 		words_re = words_re word "|"
-	words_re = words_re "DB\tOFFSET|MOVS\t\\?CSLAB,|PWR2PX=)"
+	words_re = words_re "DB\tOFFSET|\\?CSLAB|PWR2PX=)"
 
 	# Do this for all modules, including the extra OEM.ASM.
 	print "; [ Munged by jwasmify.awk " strftime() " ]"
@@ -111,14 +111,18 @@ $0 ~ words_re {
 	# Fix various minor semantics issues.
 	gsub(/\tDB\tOFFSET /, "\tDB\tLOW OFFSET ")
 	gsub(/ DB\tOFFSET /, " DB\tLOW OFFSET ")
-	gsub(/\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/, \
-	     "\tMOVS\t$FACLO,WORD PTR CS:?CSLAB")	# MATH1.ASM & MATH2.ASM
 	if ($0 ~ /^PWR2PX=/) {				# ADVGRP.ASM
 		print "MELCO=0"
 		print "TETRA=0"
 		print "MCI=0"
 		print "SIRIUS=0"
 	}
+
+	# For some reason JWasm does not insert needed CS: segment overrides
+	# for these.  Urrrgh.
+	gsub(/\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/, \
+	     "\tMOVS\t$FACLO,WORD PTR CS:?CSLAB")	# MATH1.ASM & MATH2.ASM
+	gsub(/ PTR \?CSLAB/, " PTR CS:?CSLAB")		# MATH1.ASM & MATH2.ASM
 
 	for (word in id_words) {
 		# For a word such as PUSHF, we need to spot these cases:
