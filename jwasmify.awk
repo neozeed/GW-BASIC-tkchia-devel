@@ -72,13 +72,12 @@ BEGIN {
 	# Pre-build some regular expressions.  I cheat a bit and treat the
 	# double quote `"' as an "identifier" character so that error messages
 	# like `"NEXT without FOR"' will not be mangled.
-	id_ch_re = "[$_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\"]"
+	id_ch_re = "[$?@_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ\"]"
 	id_re = "(" id_ch_re "+)"
 	ws_re = "([ \\t]+)"
 	words_re = "("
-	for (word in id_words) {
+	for (word in id_words)
 		words_re = words_re word "|"
-	}
 	words_re = words_re "DB\tOFFSET|MOVS\t\\?CSLAB,|PWR2PX=)"
 
 	# Do this for all modules, including the extra OEM.ASM.
@@ -112,9 +111,14 @@ $0 ~ words_re {
 	# Fix various minor semantics issues.
 	gsub(/\tDB\tOFFSET /, "\tDB\tLOW OFFSET ")
 	gsub(/ DB\tOFFSET /, " DB\tLOW OFFSET ")
-	gsub(/\tMOVS\t\?CSLAB,/, "\tMOVS\t$FACLO,")	# MATH1.ASM & MATH2.ASM
-	if ($0 ~ /^PWR2PX=/)				# ADVGRP.ASM
+	gsub(/\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/, \
+	     "\tMOVS\t$FACLO,WORD PTR CS:?CSLAB")	# MATH1.ASM & MATH2.ASM
+	if ($0 ~ /^PWR2PX=/) {				# ADVGRP.ASM
 		print "MELCO=0"
+		print "TETRA=0"
+		print "MCI=0"
+		print "SIRIUS=0"
+	}
 
 	for (word in id_words) {
 		# For a word such as PUSHF, we need to spot these cases:
