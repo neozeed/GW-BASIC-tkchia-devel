@@ -334,7 +334,7 @@ CSRHAK:	PUSH	BX
 	XOR	BX,BX
 	MOV	ES,BX
 	MOV	BL,ACTPAG
-	SHR	BX,1
+	SHL	BX,1
 	XCHG	DH,DL
 	SUB	DX,0101H
 	MOV	ES:0450H[BX],DX
@@ -342,6 +342,7 @@ CSRHAK:	PUSH	BX
 	POP	DX
 	POP	BX
 	RET
+
 
 PUBLIC	STOREC
 STOREC:			;Dummy function
@@ -354,10 +355,28 @@ STOREC:			;Dummy function
 ;pass Height in CL
 
 PUBLIC	SWIDTH
-SWIDTH:			;Dummy function
-	INT	3
+SWIDTH:	CMP	CL,25D
+	JNZ	SWDERR
+	MOV	BX,OFFSET CSEG:SMMP40
+	CMP	AL,40D
+	JZ	SWIDT2
+	MOV	BX,OFFSET CSEG:SMMP80
+	CMP	AL,80D
+	JZ	SWIDT2
+SWDERR:	STC
 	RET
-	DB	"SWIDTH"
+SWIDT2:	MOV	AL,CRTMOD
+	XLAT	CS:[BX]
+	TEST	AL,AL
+	JS	SWDERR
+	CALL	SCNRST
+	CLC
+	RET
+
+; Internal data structure: how to switch to another BIOS video mode, given
+; that we want to change the screen width
+SMMP40	DB	0,1,0,1,4,5,4,-1
+SMMP80	DB	2,3,2,3,6,6,6,7
 
 PUBLIC	NREAD
 NREAD:			;Dummy function
@@ -379,7 +398,6 @@ NSETCX:			;Dummy function
 
 PUBLIC	DONOTE
 DONOTE:			;Dummy function
-	INT	3
 	RET
 	DB	"DONOTE"
 
@@ -684,10 +702,16 @@ FKYFM2:	RET
 ;Do OEM specific termination processing (from GIODSK.ASM)
 ;
 PUBLIC	GWTERM
-GWTERM:	MOV	BH,VISPAG		; Force the visible page to become
-	MOV	ACTPAG,BH		; the active page
-	JMP	SCNTRM			; Hand over to the platform-
-					; -independent callback
+GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
+	MOV	ACTPAG,AL		; the active page
+	CALL	SCNTRM			; Invoke the platform--independent
+					; callback
+	MOV	AL,CRTINI		; Restore the startup screen mode,
+	CMP	AL,CRTMOD		; if needed
+	JZ	GWTRMF
+	XOR	AH,AH
+	INT	10H
+GWTRMF:	RET
 
 ; Return graphics dimensions for current screen
 ;
@@ -887,26 +911,28 @@ GWINI:	PUSH	AX
 	PUSH	SI
 	PUSH	DI
 	PUSH	BP
-CRTTRY:	MOV	AH,0FH			; Get current video mode
+	MOV	AH,0FH			; Get and save initial video mode
 	INT	10H
+	MOV	CRTINI,AL
 	CMP	AL,07H			; If not a mode we know about, force
-	JNA	CRTOK			; "standard" text mode
+	JNA	CRTOK2			; "standard" text mode
 	MOV	AX,0003H
 	INT	10H
-	JMP	CRTTRY
-CRTOK:	MOV	CRTMOD,AL
+CRTOK1:	MOV	AH,0FH
+	INT	10H
+CRTOK2:	MOV	CRTMOD,AL
 	MOV	VISPAG,BH
 	MOV	ACTPAG,BH
 	MOV	BL,07H			; Decide initial text colour to use
 	CMP	AL,03H
-	JBE	CRTOK2
+	JBE	CRTOK3
 	CMP	AL,07H
-	JZ	CRTOK2
+	JZ	CRTOK3
 	MOV	BL,03H
 	CMP	AL,06H
-	JNZ	CRTOK2
+	JNZ	CRTOK3
 	MOV	BL,01H
-CRTOK2:	MOV	AL,AH			; INT 10H conveniently gives us the
+CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
 	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
@@ -921,7 +947,23 @@ CRTOK2:	MOV	AL,AH			; INT 10H conveniently gives us the
 	POP	CX
 	POP	BX
 	POP	AX
-	RET
+CRTOK4:	RET
+
+; Internal function: change the screen mode and reset relevant variables, if
+; necessary
+;
+SCNRST:	CMP	CRTMOD,AL
+	JZ	CRTOK4
+	PUSH	AX
+	PUSH	BX
+	PUSH	CX
+	PUSH	DX
+	PUSH	SI
+	PUSH	DI
+	PUSH	BP
+	XOR	AH,AH
+	INT	10H
+	JMP	SHORT CRTOK1
 
 PUBLIC	NWRITE
 NWRITE:			;Dummy function
@@ -929,11 +971,123 @@ NWRITE:			;Dummy function
 	RET
 	DB	"NWRITE"
 
+; Implement the SCREEN command
+; SCREEN [MODE] [,[COLORSWITCH] [,[APAGE] [,[VPAGE]]]]
+;
+; INPUT
+;	DS:[BX]		Command parameters as laid out by GTPRMS
+;			First byte N gives number of parameters specified
+;			This is followed by N pairs of bytes
+;			1st byte:	0 parameter left blank
+;					0FFH last parameter
+;					',' parameter specified, not last (?)
+;			2nd byte:	parameter value
+; OUTPUT
+;	FLAGS		CF=0 Success
+;			CF=1 Error
+;
 PUBLIC	SCRSTT
-SCRSTT:			;Dummy function
-	INT	3
+SCRSTT:	MOV	SI,BX
+	MOV	CL,[SI]
+	XOR	CH,CH
+	DEC	CX
+	CMP	CL,3			; If < 1 or > 4 parameters, error
+	JA	SCRERR
+	MOV	AL,2[SI]		; If new MODE given, use it;
+	CMP	1[SI],CH		; otherwise use the current mode
+	JNZ	SCRMO1
+	MOV	AL,CRTMOD		; If current BIOS video mode is 07H,
+	CMP	AL,07H			; handle it specially...
+	JZ	SCRMO3
+	MOV	BX,OFFSET CSEG:SMMAP1
+	XLAT	CS:[BX]
+SCRMO1:	CMP	AL,2			; New MODE must be 0, 1, or 2
+	JA	SCRERR
+	MOV	AH,3			; If no COLORSWITCH given, assume
+	JCXZ	SCRMO2			; nonzero
+	DEC	CX
+	CMP	3[SI],CH
+	JZ	SCRMO2
+	CMP	4[SI],CH
+	JNZ	SCRMO2
+	CBW
+SCRMO2:	ADD	AL,AH
+	CMP	CRTWID,80D
+	JB	SCRMO3
+	ADD	AL,8D
+SCRMO3:	PUSH	BX
+	MOV	BX,OFFSET CSEG:SMMAP2	; Get the BIOS video mode number
+	XLAT	CS:[BX]
+	PUSH	AX			; Get the maximum number of pages
+	MOV	BX,OFFSET CSEG:TOTPAG	; for the new video mode while at it
+	XLAT	CS:[BX]
+	MOV	DH,AL
+	POP	AX
+	POP	BX
+	CMP	CRTMOD,AL		; If necessary, change the video mode
+	JZ	SCRMO4
+	CALL	SCNRST			; ...and reset relevant variables
+SCRMO4:	JCXZ	SCRFIN
+	DEC	CX
+	MOV	DL,ACTPAG		; Determine the new active video
+	CMP	5[SI],CH		; page number
+	JZ	SCRACP
+	MOV	DL,6[SI]
+	CMP	DL,DH
+	JAE	SCRERR
+SCRACP:	MOV	AL,DL			; Determine the new visible video
+	JCXZ	SCRVIP			; page number; this defaults to
+	CMP	7[SI],CH		; the active page
+	JZ	SCRVIP
+	MOV	AL,8D[SI]
+	CMP	AL,DH
+	JAE	SCRERR
+SCRVIP:	MOV	VISPAG,AL
+	MOV	ACTPAG,DL
+	MOV	AH,05H			; Set the visible page; the BIOS
+	INT	10H			; will also change the active page
+	CALL	PAGHAK			; Then set the active page
+SCRFIN:	CLC				; We are done
 	RET
-	DB	"SCRSTT"
+SCRERR:	STC
+	RET
+
+; Internal function: pretend to the BIOS that the active video display page
+; is ACTPAG, but without actually switching to it
+;
+PAGHAK:	PUSH	AX
+	PUSH	DX
+	PUSH	ES
+	XOR	DX,DX
+	MOV	ES,DX
+	MOV	AL,ACTPAG
+	CMP	ES:0462H,AL		; If the BIOS's idea of the active
+	JZ	PAGHKF			; page is already correct, do nothing
+	MOV	ES:0462H,AL
+	XOR	AH,AH			; Otherwise, we need to recalculate
+	MOV	DX,ES:044CH		; the page's start address in video
+	MUL	DX			; memory
+	MOV	ES:044EH,AX
+PAGHKF:	POP	ES
+	POP	DX
+	POP	AX
+	RET
+
+; Internal data structure: mapping of BIOS video mode numbers to BASIC video
+; mode numbers (except for mode 07H)
+SMMAP1	DB	0,0,0,0,1,1,2
+
+; Internal data structure: mapping of BASIC video mode numbers to BIOS video
+; mode numbers, given current screen width (40 or 80 characters) and
+; COLORSWITCH parameter to SCREEN
+SMMAP2	DB	1,5,6			; COLORSWITCH = 0, width 40
+	DB	0,4,6			; COLORSWITCH <> 0, width 40
+	DB	?,7			; Special case
+	DB	3,5,6			; COLORSWITCH = 0, width 80
+	DB	2,4,6			; COLORSWITCH <> 0, width 80
+
+; Internal data structure: total number of display pages for each video mode
+TOTPAG:	DB	8D,8D,4,4,1,1,1,8D
 
 PUBLIC	CSRDSP
 CSRDSP:	PUSH	AX
@@ -1043,6 +1197,7 @@ FKEY80	DB	6D,10D,1D	; (?!?) Function key display format for 80x25
 
 
 CRTMOD	DB	?		; (?) Current screen mode
+CRTINI	DB	?		; (?) Initial screen mode on GW-BASIC start
 VISPAG	DB	?		; (?) Current visible display page
 TXTATR	DB	?		; (?) Current colour attribute for printing
 				; text
