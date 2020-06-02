@@ -119,7 +119,8 @@ $0 ~ words_re {
 	}
 
 	# For some reason JWasm does not insert needed CS: segment overrides
-	# for these.  Urrrgh.
+	# for these.  Urrrgh.  (I have reported this issue at
+	# https://github.com/JWasm/JWasm/issues/211 .)
 	gsub(/\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/, \
 	     "\tMOVS\t$FACLO,WORD PTR CS:?CSLAB")	# MATH1.ASM & MATH2.ASM
 	gsub(/ PTR \?CSLAB/, " PTR CS:?CSLAB")		# MATH1.ASM & MATH2.ASM
