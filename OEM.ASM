@@ -1,3 +1,5 @@
+	.RADIX	8
+
 DGROUP	GROUP	DSEG,SSEG
 
 CSEG	SEGMENT PUBLIC 'CODESG' 
@@ -375,7 +377,7 @@ SWIDT2:	MOV	AL,CRTMOD
 
 ; Internal data structure: how to switch to another BIOS video mode, given
 ; that we want to change the screen width
-SMMP40	DB	0,1,0,1,4,5,4,-1
+SMMP40	DB	0,1,0,1,4,5,4,7
 SMMP80	DB	2,3,2,3,6,6,6,7
 
 PUBLIC	NREAD
@@ -483,11 +485,17 @@ INKSNG:	RET
 ;
 PUBLIC	SETFBC
 SETFBC:	JC	SETFBG
+	MOV	TXTFGC,AL
+	MOV	TXTBGC,BL
 	PUSH	AX
 	PUSH	BX
 	PUSH	CX
-	MOV	CL,4
+	MOV	CL,5
 	SHL	BL,CL
+	DEC	CX
+	SHL	AL,CL			; Handle the "blinking" flag!
+	RCR	BL,1
+	SHR	AL,CL
 	OR	AL,BL
 	MOV	TXTATR,AL
 	POP	CX
@@ -568,13 +576,8 @@ SCALXY:			;Dummy function
 ;
 PUBLIC	GETFBC
 GETFBC:	JC	GETFBG
-	PUSH	CX
-	MOV	AL,TXTATR
-	MOV	BL,AL
-	MOV	CL,4
-	SHR	BL,CL
-	AND	AL,0FH
-	POP	CX
+	MOV	AL,TXTFGC
+	MOV	BL,TXTBGC
 	RET
 GETFBG:	MOV	AL,GRPFGC
 	MOV	BL,GRPBGC
@@ -704,7 +707,7 @@ FKYFM2:	RET
 PUBLIC	GWTERM
 GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 	MOV	ACTPAG,AL		; the active page
-	CALL	SCNTRM			; Invoke the platform--independent
+	CALL	SCNTRM			; Invoke the platform-independent
 					; callback
 	MOV	AL,CRTINI		; Restore the startup screen mode,
 	CMP	AL,CRTMOD		; if needed
@@ -936,6 +939,8 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
 	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
+	MOV	TXTFGC,BL
+	MOV	TXTBGC,0
 	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
 	MOV	AL,0			; Now really clear the screen
@@ -1199,8 +1204,12 @@ FKEY80	DB	6D,10D,1D	; (?!?) Function key display format for 80x25
 CRTMOD	DB	?		; (?) Current screen mode
 CRTINI	DB	?		; (?) Initial screen mode on GW-BASIC start
 VISPAG	DB	?		; (?) Current visible display page
+
 TXTATR	DB	?		; (?) Current colour attribute for printing
 				; text
+TXTFGC	DB	?		; (?!?) Current foreground colour for text
+TXTBGC	DB	?		; (?!?) Current background colour for text
+
 GRPFGC	DB	?		; (?!?) Current foreground colour for graphics
 GRPBGC	DB	?		; (?!?) Current background colour for graphics
 
@@ -1232,4 +1241,3 @@ SSEG	SEGMENT STACK 'STACKSG'
 	DB	128D DUP(?)	; (?) Stash a startup stack here
 SSEG	ENDS
 	END
-
