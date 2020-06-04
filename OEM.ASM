@@ -61,16 +61,23 @@ CLRALL:	SUB	DX,0101H
 ; Internal function: return in AL the screen attribute to use for INT 10H
 ; text blanking operations
 ;
-FILATR:	PUSH	CX
-	MOV	AL,1
-	MOV	CL,CRTMOD
-	SHL	AL,CL
-	TEST	AL,01110000B
+FILATR:	CALL	TXTMOD
 	MOV	AL,TXTATR
-	JZ	FILAT2
+	JC	FILAT2
+	PUSH	CX
 	MOV	CL,4
 	SHR	AL,CL
-FILAT2:	POP	CX
+	POP	CX
+FILAT2:	RET
+
+; Internal function: say whether the current video mode is a text mode
+;
+TXTMOD:	PUSH	CX
+	MOV	CH,10001111B
+	MOV	CL,CRTMOD
+	INC	CX
+	SHR	CH,CL
+	POP	CX
 	RET
 
 ; OEM supplied screen clear to end of line
@@ -885,11 +892,11 @@ PRTMAP:	CMP	AX,001FH
 	JMP	SHORT TSTEDF		; ^K, ^L, ^M
 PRTM1X:	SUB	CL,10H
 	MOV	AX,1111000000000000B	; Ask to specially handle ^\, ^], ^^,
-TSTEDF:	SHR	AX,CL			; ^_
-	TEST	AL,1
+TSTEDF:	INC	CX			; ^_
+	SHR	AX,CL
 	POP	CX
 	POP	AX
-	JZ	NOEDF
+	JNC	NOEDF
 MAPEDF:	MOV	AH,0FFH
 NOEDF:	TEST	SP,SP
 	RET
@@ -1145,11 +1152,90 @@ PNTINI:			;Dummy function
 	RET
 	DB	"PNTINI"
 
+; Implement the SCREEN command
+; COLOR [FOREGROUND [,[BACKGROUND] [,[BORDER]]]]	' under SCREEN 0
+; COLOR [BACKGROUND [,[PALETTE]]]			' under SCREEN 1
+;
+; INPUT
+;	DS:[BX]		Command parameters as laid out by GTPRMS
+; OUTPUT
+;	FLAGS		CF=0 Success
+;			CF=1 Error
+;
 PUBLIC	SETCLR
-SETCLR:			;Dummy function
-	INT	3
+SETCLR:	PUSHF
+	CLD
+	MOV	SI,BX			; Test if parameter count is sane
+	MOV	AL,CRTMOD		; for the current video mode
+	MOV	BX,OFFSET CSEG:CLRPRM
+	XLAT	CS:[BX]
+	CBW
+	XCHG	CX,AX
+	LODSB
+	TEST	AL,AL
+	JZ	CLRERR
+	CMP	AL,CL
+	JA	CLRERR
+	MOV	CL,AL
+	CALL	TXTMOD
+	JNC	CLRGRP
+	LODSW				; We are in SCREEN 0; first get
+	TEST	AL,AL			; FOREGROUND
+	MOV	AL,AH
+	JNZ	CLRFGC
+	MOV	AL,TXTFGC
+CLRFGC:	XCHG	BX,AX			; Get BACKGROUND
+	DEC	CX
+	JZ	CLRBG1
+	LODSW
+	TEST	AL,AL
+	MOV	AL,AH
+	JNZ	CLRBG2
+CLRBG1:	MOV	AL,TXTBGC
+CLRBG2:	XCHG	BX,AX			; Check foreground & background
+	CMP	AL,1FH			; colours for sanity
+	JA	CLRERR
+	CMP	BL,0FH
+	JA	CLRERR
+	CLC				; Set foreground & background
+	CALL	SETFBC			; colours for text
+	DEC	CX			; Get BORDER if present
+	JZ	CLRFIN
+	LODSW
+	TEST	AL,AL
+	JZ	CLRFIN
+	MOV	BL,AH			; Set border colour
+	XOR	BH,BH
+CLRPAL:	MOV	AH,0BH
+	INT	10H
+CLRFIN:	POPF				; We are done
+	CLC
 	RET
-	DB	"SETCLR"
+CLRGRP:	LODSW				; We are in SCREEN 1; get BACKGROUND
+	TEST	AL,AL
+	JZ	CLRBGC
+	PUSH	CX			; If present, set background (&
+	MOV	BL,AH			; border) colour
+	XOR	BH,BH
+	MOV	AH,0BH
+	INT	10H
+	POP	CX
+CLRBGC:	DEC	CX			; Get PALETTE
+	JZ	CLRFIN
+	LODSW
+	TEST	AL,AL
+	JZ	CLRFIN
+	MOV	BL,AH			; If present, set the palette
+	MOV	BH,01H
+	AND	BL,BH
+	JMP	CLRPAL
+CLRERR:	POPF
+	STC
+	RET
+
+; Internal data structure: maximum argument count to COLOR, for each BIOS
+; video mode
+CLRPRM:	DB	3,3,3,3,2,2,0,2
 
 PUBLIC	SCRATR
 SCRATR:			;Dummy function
