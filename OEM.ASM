@@ -926,21 +926,22 @@ CRTOK1:	MOV	AH,0FH
 CRTOK2:	MOV	CRTMOD,AL
 	MOV	VISPAG,BH
 	MOV	ACTPAG,BH
-	MOV	BL,07H			; Decide initial text colour to use
-	CMP	AL,03H
+	MOV	BX,0007H		; Decide initial text colour to use
+	CMP	AL,03H			; and the number of bits per pixel
 	JBE	CRTOK3
 	CMP	AL,07H
 	JZ	CRTOK3
-	MOV	BL,03H
+	MOV	BX,0203H
 	CMP	AL,06H
 	JNZ	CRTOK3
-	MOV	BL,01H
+	MOV	BX,0101H
 CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
 	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
 	MOV	TXTFGC,BL
 	MOV	TXTBGC,0
+	MOV	PIXBTS,BH
 	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
 	MOV	AL,0			; Now really clear the screen
