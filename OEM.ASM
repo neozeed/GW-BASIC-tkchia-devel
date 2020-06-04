@@ -439,11 +439,31 @@ CBSPEC:	MOV	CBFSEG,CX		; Record the COM buffer location
 	CLC				;
 	RET
 
+; From BASICA.COM CSEG:2265H
+; Set current pixel to the pixel just to its left
+;
 PUBLIC	LEFTC
-LEFTC:			;Dummy function
-	INT	3
+LEFTC:	MOV	AL,CL
+	MOV	CL,PIXBTS
+	ROL	ATRMSK,CL
+	MOV	CL,AL
+	JC	LEFTC2
 	RET
-	DB	"LEFTC"
+LEFTC2:	DEC	PIXOFS
+	RET
+
+; Set current pixel to the pixel just to its right
+; (Not in BASICA.COM (?))
+;
+PUBLIC	RIGHTC
+RIGHTC:	MOV	AL,CL
+	MOV	CL,PIXBTS
+	ROR	ATRMSK,CL
+	MOV	CL,AL
+	JC	RGHTC2
+	RET
+RGHTC2:	INC	PIXOFS
+	RET
 
 PUBLIC	PGINIT
 PGINIT:			;Dummy function
@@ -451,11 +471,52 @@ PGINIT:			;Dummy function
 	RET
 	DB	"PGINIT"
 
+; From BASICA.COM CSEG:2295H
+; Set "current pixel" to given (X, Y) --- map coordinates to a byte offset
+; in video memory & a bit mask, & update ATROFS & ATRMSK
+;
+; INPUT
+;	(CX, DX)	(X, Y) coordinates
+; REGISTERS AFFECTED
+;	AX, BX, CX, DX, BP
+;
 PUBLIC	MAPXYC
-MAPXYC:			;Dummy function
-	INT	3
+MAPXYC:	MOV	BP,CX
+	SHR	DX,1
+	LAHF
+	MOV	BX,DX
+	MOV	CL,2
+	SHL	DX,CL
+	ADD	DX,BX
+	MOV	CL,4
+	SHL	DX,CL
+	SAHF
+	JNC	MXYEVN
+	ADD	DX,2000H		; Add interlace offset
+MXYEVN:	MOV	PIXOFS,DX
+	MOV	DX,BP
+	MOV	CL,DL
+	TEST	PIXBTS,1
+	JZ	MXYPX2
+	MOV	AL,07H
+	AND	CL,AL
+	MOV	AL,1000000B
+	SHR	AL,CL
+	MOV	ATRMSK,AL
+	MOV	CL,3
+	SHR	DX,CL
+	ADD	PIXOFS,DX
 	RET
-	DB	"MAPXYC"
+MXYPX2:	MOV	AL,03H
+	AND	CL,AL
+	ADD	CL,CL
+	MOV	AL,11000000B
+	SHR	AL,CL
+	MOV	ATRMSK,AL
+	MOV	CL,2
+	SHR	DX,CL
+	ADD	PIXOFS,DX
+	RET
 
 ; Map keystrokes to values for INKEY$
 ;
@@ -509,15 +570,9 @@ SETFBC:	JC	SETFBG
 	POP	BX
 	POP	AX
 	RET
-SETFBG:	MOV	GRPFGC,AL
-	MOV	GRPBGC,BL
+SETFBG:	MOV	FORCLR,AL
+	MOV	BAKCLR,BL
 	RET
-
-PUBLIC	TDOWNC
-TDOWNC:			;Dummy function
-	INT	3
-	RET
-	DB	"TDOWNC"
 
 PUBLIC	SCANR
 SCANR:			;Dummy function
@@ -547,11 +602,30 @@ GETHED:
 	RET
 OEMHED:	DB	"GW-BASIC",0
 
-PUBLIC	UPC
-UPC:			;Dummy function
-	INT	3
+; From BASICA.COM CSEG:2225H
+; Set current pixel to the pixel just above it, unless pixel is already on
+; first row, then just return with CF=1
+;
+PUBLIC	TUPC
+TUPC:	MOV	AX,PIXOFS
+	CMP	AX,80D
+	JNB	UPC1
+	STC
 	RET
-	DB	"UPC"
+
+; From BASICA.COM CSEG:222FH
+; Set current pixel to the pixel just above it
+;
+PUBLIC	UPC
+UPC:	MOV	AX,PIXOFS
+UPC1:	CMP	AH,20H
+	JB	UPC2
+	SUB	AH,20H
+	MOV	PIXOFS,AX
+	RET
+UPC2:	ADD	AX,2000H-80D
+	MOV	PIXOFS,AX
+	RET
 
 PUBLIC	SCANL
 SCANL:			;Dummy function
@@ -622,8 +696,8 @@ GETFBC:	JC	GETFBG
 	MOV	AL,TXTFGC
 	MOV	BL,TXTBGC
 	RET
-GETFBG:	MOV	AL,GRPFGC
-	MOV	BL,GRPBGC
+GETFBG:	MOV	AL,FORCLR
+	MOV	BL,BAKCLR
 	RET
 
 PUBLIC	SNDCOM
@@ -649,18 +723,6 @@ INFMAP:			;Dummy function
 	INT	3
 	RET
 	DB	"INFMAP"
-
-PUBLIC	TUPC
-TUPC:			;Dummy function
-	INT	3
-	RET
-	DB	"TUPC"
-
-PUBLIC	RIGHTC
-RIGHTC:			;Dummy function
-	INT	3
-	RET
-	DB	"RIGHTC"
 
 ; Do OEM-specific initialization of the data segment after it has been moved
 ; to its final location
@@ -717,11 +779,30 @@ PUBLIC	PIXSIZ
 PIXSIZ:	MOV	AL,PIXBTS
 	RET
 
-PUBLIC	DOWNC
-DOWNC:			;Dummy function
-	INT	3
+; From BASICA.COM CSEG:2245H
+; Set current pixel to the pixel just below it, unless pixel is already on
+; last row, then just return with CF=1
+;
+PUBLIC	TDOWNC
+TDOWNC:	MOV	AX,PIXOFS
+	CMP	AX,8000D+2000H-80D
+	JB	DOWNC1
+	STC
 	RET
-	DB	"DOWNC"
+
+; From BASICA.COM CSEG:224FH
+; Set current pixel to the pixel just below it
+;
+PUBLIC	DOWNC
+DOWNC:	MOV	AX,PIXOFS
+DOWNC1:	CMP	AH,20H
+	JB	DOWNC2
+	SUB	AX,2000H-80D
+	MOV	PIXOFS,AX
+	RET
+DOWNC2:	ADD	AH,20H
+	MOV	PIXOFS,AX
+	RET
 
 PUBLIC	LCPY
 LCPY:			;Dummy function
@@ -983,7 +1064,9 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
 	MOV	TXTFGC,BL
+	MOV	FORCLR,BL
 	MOV	TXTBGC,0
+	MOV	BAKCLR,0
 	MOV	PIXBTS,BH
 	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
@@ -1333,8 +1416,10 @@ TXTATR	DB	?		; (?) Current colour attribute for printing
 TXTFGC	DB	?		; (?!?) Current foreground colour for text
 TXTBGC	DB	?		; (?!?) Current background colour for text
 
-GRPFGC	DB	?		; (?!?) Current foreground colour for graphics
-GRPBGC	DB	?		; (?!?) Current background colour for graphics
+FORCLR	DB	?		; Current foreground colour for graphics
+BAKCLR	DB	?		; Current background colour for graphics
+				; The names FORCLR & BAKCLR are mentioned in
+				; GENGRP.ASM
 
 PIXBTS	DB	?		; From BASICA.COM DS:0055H
 				; Number of bits per pixel; assumed to be 0
