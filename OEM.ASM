@@ -352,12 +352,24 @@ CSRHAK:	PUSH	BX
 	POP	BX
 	RET
 
-
-PUBLIC	STOREC
-STOREC:			;Dummy function
-	INT	3
+; From BASICA.COM CSEG:2215H
+; Load the current pixel byte offset and mask into (BX, AL)
+; This is likely to have been calculated earlier with MAPXYC
+;
+PUBLIC	FETCHC
+FETCHC:	MOV	BX,PIXOFS
+	MOV	AL,ATRMSK
 	RET
-	DB	"STOREC"
+
+; From BASICA.COM CSEG:221DH
+; Set the current pixel byte offset and mask to (BX, AL)
+; This is likely to have been calculated earlier with MAPXYC & then
+; retrieved with FETCHC
+;
+PUBLIC	STOREC
+STOREC:	MOV	PIXOFS,BX
+	MOV	ATRMSK,AL
+	RET
 
 ;Let screen editor set width
 ;pass Width in AL
@@ -632,12 +644,6 @@ SCANL:			;Dummy function
 	INT	3
 	RET
 	DB	"SCANL"
-
-PUBLIC	FETCHC
-FETCHC:			;Dummy function
-	INT	3
-	RET
-	DB	"FETCHC"
 
 ; From BASICA.COM CSEG:2306H; SXYERR is from CSEG:22FAH
 ; Clip graphics coordinates to the boundaries of the graphics screen
