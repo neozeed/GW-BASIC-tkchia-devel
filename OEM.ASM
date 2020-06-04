@@ -27,7 +27,7 @@ written from scratch.
         *
 	.SALL
 
-	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR
+	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR
 
 ;; Text screen group of subroutines
 
@@ -565,11 +565,47 @@ FETCHC:			;Dummy function
 	RET
 	DB	"FETCHC"
 
+; From BASICA.COM CSEG:2306H; SXYERR is from CSEG:22FAH
+; Clip graphics coordinates to the boundaries of the graphics screen
+;
+; INPUT
+;	(CX, DX)	(X, Y) coordinates
+; OUTPUT
+;	(CX, DX)	Clipped (X, Y) coordinates
+;	FLAGS		CF=1 if coordinates were not clipped
+; REGISTERS AFFECTED
+;	AX, BX
+;
 PUBLIC	SCALXY
-SCALXY:			;Dummy function
-	INT	3
+SCALXY:	MOV	AL,PIXBTS
+	OR	AL,AL
+	JZ	SXYERR
+	OR	CH,CH
+	JS	SXYXNG
+	MOV	BX,640D
+	TEST	AL,1
+	JNZ	SXYWID
+	SHR	BX,1
+SXYWID:	CMP	CX,BX
+	LAHF
+	JB	SXYXOK
+	DEC	BX
+	MOV	CX,BX
+SXYXOK:	OR	DH,DH
+	JS	SXYYNG
+	CMP	DX,200D
+	JB	SXYYOK
+	MOV	DX,199D
 	RET
-	DB	"SCALXY"
+SXYYOK:	SAHF
+	RET
+SXYYNG:	XOR	DX,DX
+	RET
+SXYXNG:	XOR	CX,CX
+	LAHF
+	JMP	SHORT SXYXOK
+
+SXYERR:	JMP	FCERR
 
 ; Get current foreground and background colours for text or graphics
 ; operations
