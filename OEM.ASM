@@ -353,7 +353,7 @@ CSRHAK:	PUSH	BX
 	RET
 
 ; From BASICA.COM CSEG:2215H
-; Load the current pixel byte offset and mask into (BX, AL)
+; Load (BX, AL) with the current pixel's byte offset & mask
 ; This is likely to have been calculated earlier with MAPXYC
 ;
 PUBLIC	FETCHC
@@ -362,7 +362,7 @@ FETCHC:	MOV	BX,PIXOFS
 	RET
 
 ; From BASICA.COM CSEG:221DH
-; Set the current pixel byte offset and mask to (BX, AL)
+; Set the current pixel's byte offset & mask to (BX, AL)
 ; This is likely to have been calculated earlier with MAPXYC & then
 ; retrieved with FETCHC
 ;
@@ -586,12 +586,6 @@ SETFBG:	MOV	FORCLR,AL
 	MOV	BAKCLR,BL
 	RET
 
-PUBLIC	SCANR
-SCANR:			;Dummy function
-	INT	3
-	RET
-	DB	"SCANR"
-
 PUBLIC	INICOM
 INICOM:			;Dummy function
 	INT	3
@@ -639,12 +633,6 @@ UPC2:	ADD	AX,2000H-80D
 	MOV	PIXOFS,AX
 	RET
 
-PUBLIC	SCANL
-SCANL:			;Dummy function
-	INT	3
-	RET
-	DB	"SCANL"
-
 ; From BASICA.COM CSEG:2306H; SXYERR is from CSEG:22FAH
 ; Clip graphics coordinates to the boundaries of the graphics screen
 ;
@@ -686,6 +674,161 @@ SXYXNG:	XOR	CX,CX
 	JMP	SHORT SXYXOK
 
 SXYERR:	JMP	FCERR
+
+; From BASICA.COM CSEG:233AH
+; Return the screen's pixel aspect ratio (?)
+;
+; OUTPUT
+;	BX		(?) 100H * (width of 1 pixel) / (height of 1 pixel)
+;	DX		(?) 100H * (height of 1 pixel) / (width of 1 pixel)
+;
+PUBLIC	GTASPC
+GTASPC:	MOV	BX,00D5H
+	MOV	DX,0133H
+	TEST	PIXBTS,1
+	JZ	ASPFIN
+	SHR	BX,1
+	INC	BX
+	ADD	DX,DX
+ASPFIN:	RET
+
+; From BASICA.COM CSEG:24A3H; added CLC
+; Initialize variables for a PAINT operation
+;
+; INPUT
+;	AL		Border colour
+;
+PUBLIC	PNTINI
+PNTINI:	MOV	CH,ATRPAT
+	CALL	SETATR
+	MOV	BORPAT,AL
+	MOV	ATRPAT,CH
+	CLC
+	RET
+
+; From BASICA.COM CSEG:24B2H
+;
+SLRCHG:	MOV	AL,BH
+	XOR	AL,DL
+	AND	AL,CH
+	JZ	SLRC1
+	MOV	AL,BH
+	XOR	AL,DH
+	AND	AL,CH
+	OR	BL,AL
+	XOR	BH,AL
+	STC
+SLRC1:	RET
+
+; From BASICA.COM CSEG:24C6H
+;
+SLRL:	MOV	CL,PIXBTS
+	ROL	CH,CL
+	JNC	SLR4
+	MOV	ES:[DI],BH
+	CALL	SLR1
+	LAHF
+	DEC	DI
+	MOV	BH,ES:[DI]
+	SAHF
+	RET
+SLRR:	MOV	CL,PIXBTS
+	ROR	CH,CL
+	JNC	SLR4
+	MOV	ES:[DI],BH
+	INC	DI
+	MOV	BH,ES:[DI]
+SLR1:	TEST	DI,000FH
+	JNZ	SLR4
+	MOV	AX,DI			; Super-complicated way to test if
+	MOV	CL,4			; (DI AND 1FFFH) is divisible by 5 (?)
+	MOV	SI,BX			; If it is divisible by both 5 & 16,
+	MOV	BH,AH			; i.e. by 80, then we have reached
+	SHR	AX,CL			; an edge of a graphics row
+	AND	AL,0FH
+	AND	BH,0FH
+	SHR	AH,1
+	ADC	AL,BH
+	MOV	BX,SI
+	INC	CX
+	ADD	AL,CL
+	CMP	AL,25D
+	JB	SLR2
+	SUB	AL,25D
+SLR2:	JZ	SLR3
+	SUB	AL,CL
+	JNB	SLR2
+SLR3:	CMC
+SLR4:	RET
+
+; From BASICA.COM CSEG:2516H
+; (?) Initialize state for SCANL & SCANR
+;
+SLRBEG:	MOV	DI,0B800H		; ES:0 = video memory
+	MOV	ES,DI
+	MOV	DI,PIXOFS		; (DI, CH) = current pixel position
+	MOV	CH,ATRMSK		;	     within scan
+	MOV	DL,BORPAT		; DL = border pattern bitmap for PAINT
+	MOV	DH,ATRPAT		; DH = current foreground colour
+	XOR	BL,BL
+	MOV	BH,ES:[DI]		; What is currently at ES:[DI]
+	RET
+
+; From BASICA.COM CSEG:2531H
+; Scan leftwards from current pixel to flood area with colour to paint (?)
+;
+PUBLIC	SCANL
+SCANL:	PUSH	ES
+	MOV	BP,-1
+	CALL	SLRBEG
+SCL1:	CALL	SLRL
+	JC	SCL2
+	CALL	SLRCHG
+	JC	SCL1
+SCL2:	CALL	SLRR
+	MOV	ES:[DI],BH
+	MOV	PIXOFS,DI
+	MOV	ATRMSK,CH
+	MOV	CL,BL
+	MOV	BX,BP
+	POP	ES
+	RET
+
+; From BASICA.COM CSEG:2557H
+; Scan rightwards from current pixel to flood area with colour to paint (?)
+;
+PUBLIC	SCANR
+SCANR:	PUSH	ES
+	MOV	BP,DX
+	CALL	SLRBEG
+SCR1:	CALL	SLRCHG
+	JC	SCR3
+	DEC	BP
+	JZ	SCR2
+	CALL	SLRR
+	JNC	SCR1
+	XOR	BP,BP
+SCR2:	PUSH	BP
+	JMP	SCR7
+SCR3:	MOV	CSAVEA,DI
+	MOV	CSAVEM,CH
+	PUSH	BP
+	XOR	BP,BP
+	JMP	SCR5
+SCR4:	CALL	SLRCHG
+	JNC	SCR6
+SCR5:	INC	BP
+	CALL	SLRR
+	JNC	SCR4
+	CALL	SLRL
+SCR6:	MOV	PIXOFS,DI
+	MOV	ATRMSK,CH
+SCR7:	POP	DX
+	MOV	ES:[DI],BH
+	MOV	CL,BL
+	MOV	BX,BP
+	POP	ES
+	RET
 
 ; Get current foreground and background colours for text or graphics
 ; operations
@@ -735,12 +878,6 @@ INFMAP:			;Dummy function
 ;
 PUBLIC	SEGINI
 SEGINI:	RET				; Nothing to do
-
-PUBLIC	GTASPC
-GTASPC:			;Dummy function
-	INT	3
-	RET
-	DB	"GTASPC"
 
 PUBLIC	RECCOM
 RECCOM:			;Dummy function
@@ -928,14 +1065,17 @@ SCCMAP:	DB	"Q",	"W",	"E",	"R"		; 10H Alt-Q etc.
 ;	FLAGS		ZF=1 no key available
 ;			ZF=0, CF=0 one-byte character key or IBM scan code
 ;			ZF=0, CF=1 special key sequence (e.g. ^Break)
-;	AX		Next key from keyboard if one exists
+;	AX, DX		Next key from keyboard if one exists
 ;
 PUBLIC	KEYINP
 KEYINP:	MOV	AH,01H
 	INT	16H
 	JNZ	KEYIN2
-	HLT
-	RET
+	CMP	F_EDIT,0		; Suspend the CPU a bit --- but only
+	JZ	KEYFIN			; if we are actively waiting for a
+	HLT				; keystroke & not doing anything else
+	CMP	SP,SP
+KEYFIN:	RET
 KEYIN2:	XOR	AH,AH
 	INT	16H
 	TEST	AL,AL
@@ -1271,12 +1411,6 @@ ATR2BT:	MOV	CL,01010101B
 ATRERR:	STC
 	RET
 
-PUBLIC	PNTINI
-PNTINI:			;Dummy function
-	INT	3
-	RET
-	DB	"PNTINI"
-
 ; Implement the SCREEN command
 ; COLOR [FOREGROUND [,[BACKGROUND] [,[BORDER]]]]	' under SCREEN 0
 ; COLOR [BACKGROUND [,[PALETTE]]]			' under SCREEN 1
@@ -1443,12 +1577,18 @@ ATRPAT	DB	?		; From BASICA.COM DS:06F6H
 				; Bit pattern for current graphics
 				; attribute, to be masked with ATRMSK
 
+BORPAT	DB	?		; From BASICA.COM DS:0842H
+				; Bit pattern for border attribute for PAINT,
+				; to be masked with ATRMSK
+
 CBFSEG	DW	?		; Segment of COM buffer (i.e. CBFSEG:0)
 
 	EXTRN	ACTPAG:BYTE,CRTWID:BYTE
 	EXTRN	WDOTOP:BYTE,WDOLFT:BYTE,WDOBOT:BYTE,WDORGT:BYTE
 	EXTRN	CRTWID:BYTE,LINCNT:BYTE
 	EXTRN	CSRX:BYTE,CSRY:BYTE
+	EXTRN	F_EDIT:BYTE
+	EXTRN	CSAVEA:WORD,CSAVEM:BYTE
 DSEG	ENDS
 
 SSEG	SEGMENT STACK 'STACKSG'
