@@ -233,7 +233,7 @@ SCLTAB	LABEL	BYTE		; For INT 10H video mode 0:
 	DB	0B8H,0BAH,80D,1,2	; For mode 4
 	DB	0B8H,0BAH,80D,1,2	; For mode 5
 	DB	0B8H,0BAH,80D,0,2	; For mode 6
-	DB	0B8H,0,80D,1,0		; For mode 7
+	DB	0B0H,0,160D,1,0		; For mode 7
 
 ; Internal function: convert a text (column, row), in the active display
 ; page, to an offset into video memory
