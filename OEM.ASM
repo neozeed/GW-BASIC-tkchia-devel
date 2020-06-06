@@ -428,11 +428,31 @@ SNDLPT:			;Dummy function
 	RET
 	DB	"SNDLPT"
 
+; Filter a PEEK operation
+;
+; INPUT
+;	ES:BX		Address to peek
+; OUTPUT
+;	FLAGS		ZF=0 Go ahead and do the actual PEEK
+;			ZF=1 Do not do the actual PEEK
+;	AL		Value to return for PEEK function if ZF=1
+;
 PUBLIC	PEKFLT
-PEKFLT:			;Dummy function
-	INT	3
+PEKFLT:	TEST	SP,SP
 	RET
-	DB	"PEKFLT"
+
+; Filter a POKE operation
+;
+; INPUT
+;	ES:DX		Address to poke
+;	AL		Value to poke
+; OUTPUT
+;	FLAGS		ZF=0 Go ahead and do the actual POKE
+;			ZF=1 Do not do the actual POKE
+;
+PUBLIC	POKFLT
+POKFLT:	TEST	SP,SP
+	RET
 
 ; Set serial port (COM1, COM2, etc.) buffer location and size
 ;
@@ -1551,12 +1571,6 @@ POLLEV:			;Dummy function
 	INT	3
 	RET
 	DB	"POLLEV"
-
-PUBLIC	POKFLT
-POKFLT:			;Dummy function
-	INT	3
-	RET
-	DB	"POKFLT"
 
 PUBLIC	RDSTIK
 RDSTIK:			;Dummy function
