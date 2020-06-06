@@ -42,15 +42,15 @@ written from scratch.
 PUBLIC	CLRSCN
 CLRSCN:	CMP	AL,2
 	JZ	CLRWDO
-	MOV	CH,WDOTOP
+	XOR	CX,CX
+	MOV	DH,LINCNT
+	MOV	DL,CRTWID
+	JMP	SHORT CLRALL
+CLRWDO:	MOV	CH,WDOTOP
 	MOV	CL,WDOLFT
 	SUB	CX,0101H
 	MOV	DH,WDOBOT
 	MOV	DL,WDORGT
-	JMP	SHORT CLRALL
-CLRWDO:	XOR	CX,CX
-	MOV	DH,LINCNT
-	MOV	DL,CRTWID
 CLRALL:	SUB	DX,0101H
 	CALL	FILATR
 	MOV	BH,AL
@@ -505,7 +505,7 @@ PGINIT:			;Dummy function
 
 ; From BASICA.COM CSEG:2295H
 ; Set "current pixel" to given (X, Y) --- map coordinates to a byte offset
-; in video memory & a bit mask, & update ATROFS & ATRMSK
+; in video memory & a bit mask, & update PIXOFS & ATRMSK
 ;
 ; INPUT
 ;	(CX, DX)	(X, Y) coordinates
@@ -585,6 +585,10 @@ INKSNG:	RET
 ;
 PUBLIC	SETFBC
 SETFBC:	JC	SETFBG
+	CALL	TXTMOD			; Do not try to set text colours in
+	JNC	SETFBF			; graphics mode --- doing so will
+					; make the function key display text
+					; disappear!
 	MOV	TXTFGC,AL
 	MOV	TXTBGC,BL
 	PUSH	AX
@@ -604,7 +608,7 @@ SETFBC:	JC	SETFBG
 	RET
 SETFBG:	MOV	FORCLR,AL
 	MOV	BAKCLR,BL
-	RET
+SETFBF:	RET
 
 PUBLIC	INICOM
 INICOM:			;Dummy function
@@ -881,12 +885,6 @@ STACOM:			;Dummy function
 	RET
 	DB	"STACOM"
 
-PUBLIC	READC
-READC:			;Dummy function
-	INT	3
-	RET
-	DB	"READC"
-
 PUBLIC	INFMAP
 INFMAP:			;Dummy function
 	INT	3
@@ -904,6 +902,33 @@ RECCOM:			;Dummy function
 	INT	3
 	RET
 	DB	"RECCOM"
+
+; Reads the colour of a screen pixel
+; The desired pixel location should be set first using MAPXYC
+;
+; INPUT
+;
+; OUTPUT
+;	AL		Pixel colour
+; REGISTERS AFFECTED
+;	BX, CX, SI, DI (?)
+;
+PUBLIC	READC
+READC:	MOV	AL,ATRMSK
+	MOV	CL,-1
+READC1:	INC	CX
+	SHR	AL,1
+	JNC	READC1
+	RCL	AL,1
+	MOV	SI,ES
+	MOV	DI,0B800H
+	MOV	ES,DI
+	MOV	BX,PIXOFS
+	MOV	AH,ES:[BX]
+	SHR	AH,CL
+	AND	AL,AH
+	MOV	ES,SI
+	RET
 
 ; From BASICA.COM CSEG:2279H
 ; Sets a pixel on the screen to the current colour
