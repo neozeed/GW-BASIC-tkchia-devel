@@ -1002,7 +1002,7 @@ GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 	XOR	AH,AH
 	INT	10H
 	MOV	AH,01H			; Restore the startup cursor shape
-	MOV	CX,WORD PTR CRTINI+1
+	MOV	CX,CSRINI
 	INT	10H
 GWTRMF:	RET
 
@@ -1207,6 +1207,10 @@ GWINI:	PUSH	AX
 	PUSH	SI
 	PUSH	DI
 	PUSH	BP
+	MOV	AH,03H			; Get and save initial cursor shape
+	XOR	BH,BH
+	INT	10H
+	MOV	CSRINI,CX
 	MOV	AH,0FH			; Get and save initial video mode
 	INT	10H
 	MOV	CRTINI,AL
@@ -1214,10 +1218,6 @@ GWINI:	PUSH	AX
 	JNA	CRTOK2			; "standard" text mode
 	MOV	AX,0003H
 	INT	10H
-	MOV	AH,03H			; Get and save initial cursor shape
-	XOR	BH,BH
-	INT	10H
-	MOV	WORD PTR CRTINI+1,CX
 CRTOK1:	MOV	AH,0FH
 	INT	10H
 CRTOK2:	MOV	CRTMOD,AL
@@ -1600,8 +1600,8 @@ FKEY80	DB	6D,10D,1D	; (?!?) Function key display format for 80x25
 
 
 CRTMOD	DB	?		; (?) Current screen mode
-CRTINI	DB	3 DUP (?)	; (?) Initial screen mode & cursor shape on
-				;     GW-BASIC start
+CRTINI	DB	?		; (?) Initial screen mode on GW-BASIC start
+CSRINI	DW	?		; (?!?) Initial cursor shape on GW-BASIC start
 VISPAG	DB	?		; (?) Current visible display page
 
 TXTATR	DB	?		; (?) Current colour attribute for printing
