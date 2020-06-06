@@ -992,11 +992,22 @@ DOWNC2:	ADD	AH,20H
 	MOV	PIXOFS,AX
 	RET
 
+; Implement (or not) the LCOPY command
+; LCOPY [PARAM]
+; Apparently this crashes some early versions of GW-BASIC/BASICA, & is a
+; no-op in newer versions of GW-BASIC (e.g. 3.23)
+; In any case I (tkchia) could not find much information about how it is
+; supposed to work
+;
+; INPUT
+;	DL		Parameter to LCOPY (?)
+; OUTPUT
+;	FLAGS		CF=0 Success
+;			CF=1 Failure
+;
 PUBLIC	LCPY
-LCPY:			;Dummy function
-	INT	3
+LCPY:	STC
 	RET
-	DB	"LCPY"
 
 ; Say how to lay out the function key display
 ;
@@ -1026,10 +1037,10 @@ GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 	JZ	GWTRMF
 	XOR	AH,AH
 	INT	10H
-	MOV	AH,01H			; Restore the startup cursor shape
+GWTRMF:	MOV	AH,01H			; Restore the startup cursor shape
 	MOV	CX,CSRINI
 	INT	10H
-GWTRMF:	RET
+	RET
 
 ; Return graphics dimensions for current screen
 ;
