@@ -981,6 +981,9 @@ GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 	JZ	GWTRMF
 	XOR	AH,AH
 	INT	10H
+	MOV	AH,01H			; Restore the startup cursor shape
+	MOV	CX,WORD PTR CRTINI+1
+	INT	10H
 GWTRMF:	RET
 
 ; Return graphics dimensions for current screen
@@ -1191,6 +1194,10 @@ GWINI:	PUSH	AX
 	JNA	CRTOK2			; "standard" text mode
 	MOV	AX,0003H
 	INT	10H
+	MOV	AH,03H			; Get and save initial cursor shape
+	XOR	BH,BH
+	INT	10H
+	MOV	WORD PTR CRTINI+1,CX
 CRTOK1:	MOV	AH,0FH
 	INT	10H
 CRTOK2:	MOV	CRTMOD,AL
@@ -1367,19 +1374,50 @@ SMMAP2	DB	1,5,6			; COLORSWITCH = 0, width 40
 ; Internal data structure: total number of display pages for each video mode
 TOTPAG:	DB	8D,8D,4,4,1,1,1,8D
 
+; Display the text cursor
+;
+; INPUT
+;	AL		Cursor type
+;			0 Invisible
+;			3 User cursor
+; REGISTERS AFFECTED
+;	BX (?)
+;
 PUBLIC	CSRDSP
-CSRDSP:	PUSH	AX
-	PUSH	BX
+CSRDSP:	PUSH	BX
+	PUSH	CX
 	PUSH	DX
-	MOV	BH,ACTPAG
+	PUSH	AX
+	MOV	BH,ACTPAG		; Move the cursor
 	MOV	DH,CSRY
 	MOV	DL,CSRX
 	SUB	DX,0101H
 	MOV	AH,2
 	INT	10H
-	POP	DX
-	POP	BX
 	POP	AX
+	PUSH	AX
+	MOV	CX,2100H		; Determine the cursor shape to use:
+	TEST	AL,AL			; if asked to be invisible, then
+	JZ	CSRDS2			; invisible it shall be
+	MOV	CX,CSRSHP
+	CMP	F_EDIT,0		; If we are not in edit mode, or if
+	JZ	CSRDS2			; we are not in insert mode, then
+	CMP	F_INST,0		; just use the user cursor shape
+	JZ	CSRDS2
+	MOV	AL,CH			; Otherwise (?) tweak the user cursor
+	AND	AX,00011111B		; shape to form an "insert mode"
+	JZ	CSRDS1			; cursor, by stretching it up 2 scan
+	DEC	AX			; lines
+	JZ	CSRDS1
+	DEC	AX
+CSRDS1:	AND	CH,11100000B
+	OR	CH,AL
+CSRDS2:	MOV	AH,01H
+	INT	10H
+	POP	AX
+	POP	DX
+	POP	CX
+	POP	BX
 	RET
 
 ; From BASICA.COM CSEG:22E6H, with a change to set the carry flag correctly
@@ -1548,13 +1586,16 @@ FKEY80	DB	6D,10D,1D	; (?!?) Function key display format for 80x25
 
 
 CRTMOD	DB	?		; (?) Current screen mode
-CRTINI	DB	?		; (?) Initial screen mode on GW-BASIC start
+CRTINI	DB	3 DUP (?)	; (?) Initial screen mode & cursor shape on
+				;     GW-BASIC start
 VISPAG	DB	?		; (?) Current visible display page
 
 TXTATR	DB	?		; (?) Current colour attribute for printing
 				; text
 TXTFGC	DB	?		; (?!?) Current foreground colour for text
 TXTBGC	DB	?		; (?!?) Current background colour for text
+
+CSRSHP	DW	0607H		; (?!?) Current shape of user cursor
 
 FORCLR	DB	?		; Current foreground colour for graphics
 BAKCLR	DB	?		; Current background colour for graphics
@@ -1586,8 +1627,7 @@ CBFSEG	DW	?		; Segment of COM buffer (i.e. CBFSEG:0)
 	EXTRN	ACTPAG:BYTE,CRTWID:BYTE
 	EXTRN	WDOTOP:BYTE,WDOLFT:BYTE,WDOBOT:BYTE,WDORGT:BYTE
 	EXTRN	CRTWID:BYTE,LINCNT:BYTE
-	EXTRN	CSRX:BYTE,CSRY:BYTE
-	EXTRN	F_EDIT:BYTE
+	EXTRN	CSRX:BYTE,CSRY:BYTE,F_EDIT:BYTE,F_INST:BYTE
 	EXTRN	CSAVEA:WORD,CSAVEM:BYTE
 DSEG	ENDS
 
