@@ -88,7 +88,8 @@ release, and have to be added:
 `TUPC`,
 `UPC`.
 
-Some of these have been implemented in the new module `OEM.ASM`.
+Some of these have been implemented in the new modules `OEM.ASM` and
+`OEMSND.ASM`.
 
 Many, but not all, of the needed routines, such as `SETC` and `MAPXYC`,
  turn out to be present in
