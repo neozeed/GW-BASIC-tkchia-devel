@@ -242,11 +242,12 @@ FINNOT:	POP	SI
 
 ; Wait until we can put a new sound into the sound queue
 ;
+; INPUT
+;	DS:[SI]		Sound queue descriptor structure
 ; REGISTERS AFFECTED
-;	AX, SI
+;	AX
 ;
-SWAIPQ:	MOV	SI,OFFSET SNDQDS
-	JMP	SHORT SWLOP2
+SWAIPQ:	JMP	SHORT SWLOP2
 SWLOP1:	HLT
 SWLOP2:	CALL	LFTQ
 	CMP	AX,4
