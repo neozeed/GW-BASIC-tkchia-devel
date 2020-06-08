@@ -28,6 +28,7 @@ written from scratch.
 	.SALL
 
 	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR
+	EXTRN	SNDSTA:NEAR,SNDTRM:NEAR
 
 ;; Text screen group of subroutines
 
@@ -416,11 +417,6 @@ NSETCX:			;Dummy function
 	INT	3
 	RET
 	DB	"NSETCX"
-
-PUBLIC	DONOTE
-DONOTE:			;Dummy function
-	RET
-	DB	"DONOTE"
 
 PUBLIC	SNDLPT
 SNDLPT:			;Dummy function
@@ -895,7 +891,7 @@ INFMAP:			;Dummy function
 ; to its final location
 ;
 PUBLIC	SEGINI
-SEGINI:	RET				; Nothing to do
+SEGINI:	JMP	SNDSTA			; _Really_ start sound support
 
 PUBLIC	RECCOM
 RECCOM:			;Dummy function
@@ -1040,7 +1036,7 @@ GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 GWTRMF:	MOV	AH,01H			; Restore the startup cursor shape
 	MOV	CX,CSRINI
 	INT	10H
-	RET
+	JMP	SNDTRM			; Clean up the sound module
 
 ; Return graphics dimensions for current screen
 ;
