@@ -178,15 +178,16 @@ $0 ~ words_re {
 /^\tEXTRN\t/ {
 	# JWlink does not like it if a module exports ERRNF as an absolute
 	# constant, and then another module does a
-	#	EXTRN	... ERRNF:NEAR
+	#	EXTRN	... ERRADV:WORD
 	# Rewrite the import as
-	#	EXTRN	... ERRNF:ABS
+	#	EXTRN	... ERRADV:ABS
 	for (word in cn_words) {
 		FS = OFS = word
-		sub(/\$/, "\\$", FS)
+		gsub(/\$/, "\\$", FS)
 		$0 = $0
 		for (i = 2; i <= NF; ++i) {
 			if ($(i - 1) !~ id_ch_re "$")
+				sub(/^:NEAR/, ":ABS", $i)
 				sub(/^:WORD/, ":ABS", $i)
 		}
 	}
