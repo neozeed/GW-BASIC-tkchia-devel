@@ -176,7 +176,7 @@ $0 ~ words_re {
 }
 
 /^\tEXTRN\t/ {
-	# JWlink does not like it if a module exports ERRNF as an absolute
+	# JWlink does not like it if a module exports ERRADV as an absolute
 	# constant, and then another module does a
 	#	EXTRN	... ERRADV:WORD
 	# Rewrite the import as
