@@ -105,7 +105,7 @@ I0EOI:	MOV	AL,00100000B		; other times, just emit our own EOI
 	POP	DS
 	POP	AX
 	IRET
-I0NXT:	PUSH	BX
+I0NXT:	PUSH	BX			; Nope, we are not playing a note now
 	PUSH	SI
 	MOV	SI,OFFSET SNDQDS	; Try to get a note from the queue
 	CALL	NUMQ			; & play it as the current note

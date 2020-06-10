@@ -418,11 +418,50 @@ NSETCX:			;Dummy function
 	RET
 	DB	"NSETCX"
 
+; Modified from BASICA.COM CSEG:34F7H
+; Send a byte to a printer
+;
+; INPUT
+;	AH		Printer number (0 = LPT1:, 1 = LPT2:, etc.)
+;	AL		Byte to send
+; OUTPUT
+;	AH		0 Success
+;			1 Device not available
+;			2 Device timeout
+;			3 Out of paper
+;			> 3 Device I/O error
+; REGISTERS AFFECTED
+;	AL (?)
+;
 PUBLIC	SNDLPT
-SNDLPT:			;Dummy function
-	INT	3
+SNDLPT:	PUSH	DX
+	XOR	DX,DX			; Send out the character
+	XCHG	AH,DL
+	PUSH	BX			; RBIL says "BUGS: Some print
+	INT	17H			; spoolers trash the BX register on
+	POP	BX			; return"
+	MOV	AL,AH
+	TEST	AL,00100000B		; Test for out-of-paper condition
+	JNZ	LPTOTP
+	TEST	AL,00000001B		; Test for timeout condition
+	JNZ	LPTDTO
+	TEST	AL,01000000B		; Test for device-not-available
+	JZ	LPTDNA			; condition
+	XOR	AL,00010000B
+	TEST	AL,00011000B		; Test for general I/O error
+	JNZ	LPTDIO
+	MOV	AH,0
+	POP	DX
 	RET
-	DB	"SNDLPT"
+LPTDNA:	MOV	AH,1
+	DB	3DH
+LPTDTO:	MOV	AH,2
+	DB	3DH
+LPTOTP:	MOV	AH,3
+	DB	3DH
+LPTDIO:	MOV	AH,4
+	POP	DX
+	RET
 
 ; Filter a PEEK operation
 ;
@@ -457,7 +496,6 @@ POKFLT:	TEST	SP,SP
 ; OUTPUT
 ;	FLAGS		CF=0 OK
 ;			CF=1 Out of memory
-;
 ; REGISTERS AFFECTED
 ;
 PUBLIC	SETCBF
@@ -1239,8 +1277,14 @@ GWINI:	PUSH	AX
 	PUSH	SI
 	PUSH	DI
 	PUSH	BP
-	MOV	AH,03H			; Get and save initial cursor shape
-	XOR	BH,BH
+	XOR	DX,DX			; Initialize printer ports (up to
+PRTINI:	MOV	AH,01H			; LPT4:)
+	INT	17H
+	INC	DX
+	CMP	DL,4
+	JNZ	PRTINI
+	MOV	AH,03H			; Get and save initial screen cursor
+	XOR	BH,BH			; shape
 	INT	10H
 	MOV	CSRINI,CX
 	MOV	AH,0FH			; Get and save initial video mode
