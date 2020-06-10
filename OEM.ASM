@@ -609,6 +609,25 @@ INKMAP:	JC	INKZAP
 INKZAP:	CMP	SP,SP
 INKSNG:	RET
 
+; Map keystrokes to values for (?) purposes other than INKEY$
+;
+; INPUT
+;	FLAGS		ZF=1 (?) Impossible
+;			ZF=0, CF=0 One-byte character key or IBM scan code
+;			ZF=0, CF=1 (?) Special key sequence (e.g. ^Break)
+;	AX, DX		Keystroke, in format similar to KEYINP output (?)
+; OUTPUT
+;	FLAGS		ZF=1 Discard keystroke
+;			ZF=0 CF=0 Return keystroke as 1 byte
+;			ZF=0 CF=1 Return keystroke as 2 bytes
+;	AX		Mapped keystroke
+;
+PUBLIC	INFMAP
+INFMAP:	CALL	INKMAP
+	JNC	INFNDB
+	CMP	SP,SP
+INFNDB:	RET
+
 ; Set foreground and background colours for text or graphics operations
 ;
 ; INPUT
@@ -918,12 +937,6 @@ STACOM:			;Dummy function
 	INT	3
 	RET
 	DB	"STACOM"
-
-PUBLIC	INFMAP
-INFMAP:			;Dummy function
-	INT	3
-	RET
-	DB	"INFMAP"
 
 ; Do OEM-specific initialization of the data segment after it has been moved
 ; to its final location
