@@ -18,15 +18,14 @@ preprocessing ― using JWasm and JWlink.
 
 ### Implementation
 
-The interpreter is semi-working, but large parts of the platform-specific
+The interpreter is semi-working, but some parts of the platform-specific
 support code are still missing or incomplete.
 
-Specifically, [dspinellis](https://github.com/dspinellis/GW-BASIC) observed
-that several OEM-specific functions were missing from the original source code
-release, and have to be added.
+Specifically, [Diomidis Spinellis](https://github.com/dspinellis/GW-BASIC)
+had observed that several OEM-specific functions were missing from the
+original source code release, and have to be added.
 Most of these have been implemented in the new modules `OEM.ASM` and
 `OEMSND.ASM`.
-
 However, some are still missing, and are currently stubs:
 `INICOM`,
 `NREAD`,
