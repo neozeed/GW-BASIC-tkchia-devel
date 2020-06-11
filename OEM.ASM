@@ -679,8 +679,7 @@ INICOM:			;Dummy function
 ;			ZF=0 Always print OEM header
 ;
 PUBLIC	GETHED
-GETHED:
-	MOV	BX,OFFSET CSEG:OEMHED
+GETHED:	MOV	BX,OFFSET CSEG:OEMHED
 	CMP	BX,BX
 	RET
 OEMHED:	DB	"GW-BASIC",0
@@ -1276,11 +1275,49 @@ RDPEN:			;Dummy function
 	RET
 	DB	"RDPEN"
 
+; Set the shape of the cursor
+; (?) This will likely be followed shortly by a call to CSRDSP
+;
+; INPUT
+;	AH		Whether the 3rd parameter to LOCATE is given ---
+;			-1 means yes, 0 means no
+;	AL		3rd parameter to LOCATE (cursor visibility)
+;	BH		Whether the 4th parameter to LOCATE is given
+;	BL		4th parameter to LOCATE (cursor start scan line)
+;	CH		Whether the 5th parameter to LOCATE is given
+;	CL		5th parameter to LOCATE (cursor stop scan line)
+; OUTPUT
+;	FLAGS		CF=0 Success
+;			CF=1 Error
+; REGISTERS AFFECTED
+;	AX, BX, CX, DX (?)
+;
 PUBLIC	CSRATR
-CSRATR:			;Dummy function
-	INT	3
+CSRATR:	MOV	DX,CSRSHP
+	TEST	AH,AH
+	JZ	CSATSL
+	CMP	AL,1
+	SBB	AL,AL
+	AND	AL,00100000B
+	AND	DH,10011111B
+	OR	DH,AL
+CSATSL:	TEST	BH,BH
+	JZ	CSABSL
+	CMP	BL,00011111B
+	JA	CSAERR
+	AND	DH,11100000B
+	OR	DH,BL
+CSABSL:	TEST	CH,CH
+	JZ	CSASET
+	CMP	CL,00011111B
+	JA	CSAERR
+	AND	DL,11100000B
+	OR	DL,CL
+CSASET:	MOV	CSRSHP,DX
+	CLC
 	RET
-	DB	"CSRATR"
+CSAERR:	STC
+	RET
 
 PUBLIC	GWINI
 GWINI:	PUSH	AX

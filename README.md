@@ -28,7 +28,6 @@ Most of these have been implemented in the new modules `OEM.ASM` and
 `OEMSND.ASM`.
 
 However, some are still missing, and are currently stubs:
-`CSRATR`,
 `INICOM`,
 `NREAD`,
 `NSETCX`,
@@ -42,7 +41,7 @@ However, some are still missing, and are currently stubs:
 `SCRATR`,
 `SNDCOM`,
 `STACOM`,
-`TRNCOM`.
+`TRMCOM`.
 
 (Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be
 present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
