@@ -1,7 +1,7 @@
 # Microsoft GW-BASIC Interpreter Source Code
 
 This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
-adjusted for assembling with available versions of the Microsoft Macro Assembler.
+adjusted for assembling with JWasm or available versions of the Microsoft Macro Assembler.
 
 ## Announcement blog
 https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
@@ -22,81 +22,33 @@ The interpreter is semi-working, but large parts of the platform-specific
 support code are still missing or incomplete.
 
 Specifically, [dspinellis](https://github.com/dspinellis/GW-BASIC) observed
-that the following functions were missing from the original source code
-release, and have to be added:
-`CLREOL`,
-`CLRSCN`,
+that several OEM-specific functions were missing from the original source code
+release, and have to be added.
+Most of these have been implemented in the new modules `OEM.ASM` and
+`OEMSND.ASM`.
+
+However, some are still missing, and are currently stubs:
 `CSRATR`,
-`CSRDSP`,
-`DONOTE`,
-`DOWNC`,
-`EDTMAP`,
-`FETCHC`,
-`FKYADV`,
-`FKYFMT`,
-`GETFBC`,
-`GETHED`,
-`GRPSIZ`,
-`GTASPC`,
-`GWINI`,
-`GWTERM`,
-`INFMAP`,
 `INICOM`,
-`INKMAP`,
-`KEYINP`,
-`LCPY`,
-`LEFTC`,
-`MAPSUP`,
-`MAPXYC`,
 `NREAD`,
 `NSETCX`,
 `NWRITE`,
-`PEKFLT`,
 `PGINIT`,
-`PIXSIZ`,
-`PNTINI`,
-`POKFLT`,
 `POLLEV`,
-`PRTMAP`,
 `RDPEN`,
 `RDSTIK`,
 `RDTRIG`,
-`READC`,
 `RECCOM`,
-`RIGHTC`,
-`SCALXY`,
-`SCANL`,
-`SCANR`,
 `SCRATR`,
-`SCRINP`,
-`SCROLL`,
-`SCROUT`,
-`SCRSTT`,
-`SEGINI`,
-`SETATR`,
-`SETC`,
-`SETCBF`,
-`SETCLR`,
-`SETFBC`,
 `SNDCOM`,
-`SNDLPT`,
 `STACOM`,
-`STOREC`,
-`SWIDTH`,
-`TDOWNC`,
-`TRMCOM`,
-`TUPC`,
-`UPC`.
+`TRNCOM`.
 
-Some of these have been implemented in the new modules `OEM.ASM` and
-`OEMSND.ASM`.
-
-Many, but not all, of the needed routines, such as `SETC` and `MAPXYC`,
- turn out to be present in
-`BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
+(Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be
+present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
 release](https://github.com/microsoft/MS-DOS).  However, `BASICA.COM` is
 only released in binary form, so some analysis is needed to extract the
-routines.
+routines.)
 
 ## Building instructions
 
