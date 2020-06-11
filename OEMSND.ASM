@@ -55,13 +55,13 @@ SNDSTA:	PUSH	ES
 ; Internal function: do cleanup for this sound module when we are exiting
 ;
 PUBLIC	SNDTRM
-SNDTRM:	MOV	AL,-1
+SNDTRM:	MOV	AL,-1			; Immediately turn off sound
 	CALL	DONOTE
 	PUSH	ES
-	CLI
 	XOR	AX,AX
 	MOV	ES,AX			; Restore the IRQ 0 vector
 	MOV	AX,WORD PTR OIRQ0
+	CLI
 	MOV	ES:(08H*4),AX
 	MOV	AX,WORD PTR OIRQ0+2
 	MOV	ES:(08H*4)+2,AX
@@ -134,7 +134,7 @@ I0NXT:	PUSH	BX			; Nope, we are not playing a note now
 I0NON1:	POP	SI			; No more notes to play; turn off
 	POP	BX			; sound
 	IN	AL,61H
-	AND	AX,11111100B
+	AND	AL,11111100B
 	OUT	61H,AL
 I0NON2:	ADD	SNDBAS,P0PULS		; Reset PIT 0 to 18.2 Hz once we
 	JNC	I0EOI			; reach an INT 1CH timer tick
