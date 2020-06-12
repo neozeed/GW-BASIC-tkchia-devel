@@ -400,12 +400,6 @@ SWIDT2:	MOV	AL,CRTMOD
 SMMP40	DB	0,1,0,1,4,5,4,7
 SMMP80	DB	2,3,2,3,6,6,6,7
 
-PUBLIC	NREAD
-NREAD:			;Dummy function
-	INT	3
-	RET
-	DB	"NREAD"
-
 PUBLIC	RDTRIG
 RDTRIG:			;Dummy function
 	INT	3
@@ -530,12 +524,6 @@ RIGHTC:	MOV	AL,CL
 	RET
 RGHTC2:	INC	PIXOFS
 	RET
-
-PUBLIC	PGINIT
-PGINIT:			;Dummy function
-	INT	3
-	RET
-	DB	"PGINIT"
 
 ; From BASICA.COM CSEG:2295H
 ; Set "current pixel" to given (X, Y) --- map coordinates to a byte offset
@@ -1013,6 +1001,200 @@ PUBLIC	PIXSIZ
 PIXSIZ:	MOV	AL,PIXBTS
 	RET
 
+; From BASICA.COM CSEG:2351H
+; Do initialization for a graphics PUT or GET operation
+;
+; INPUT
+;	AL		Action verb to apply to pixels
+;			0 OR; 1 AND; 2 PRESET; 3 PSET; 4 XOR
+;	DS:[BX]		Byte array to read from or write to
+;	CX		Number of bits of graphics data to transfer
+; REGISTERS AFFECTED
+;	AX, BX, (?) CX, (?) DX
+;
+PUBLIC	PGINIT
+PGINIT:	MOV	PGTARY,BX
+	MOV	MAXDEL,CX
+	MOV	BL,AL
+	LAHF
+	MOV	AL,ATRMSK
+	XOR	BH,BH
+PGISHF:	SHL	AL,1
+	JC	PGIACT
+	INC	BH
+	JMP	SHORT PGISHF
+PGIACT:	MOV	PGTSHF,BH
+	SAHF
+	JNC	PGIFIN
+	XOR	BH,BH
+	ADD	BX,BX
+	MOV	BX,CS:PGTACS[BX]
+	MOV	PGTACT,BX
+PGIFIN:	RET
+
+PGTACS	DW	OFFSET PGTOR
+	DW	OFFSET PGTAND
+	DW	OFFSET PGTRST
+	DW	OFFSET PGTSET
+	DW	OFFSET PGTXOR
+
+PGTRST:	NOT	AL
+PGTSET:	XOR	AL,ES:[DI]
+	AND	AL,CH
+	XOR	ES:[DI],AL
+	INC	DI
+	RET
+PGTAND:	NOT	CH
+	OR	AL,CH
+	NOT	CH
+	AND	ES:[DI],AL
+	INC	DI
+	RET
+PGTOR:	AND	AL,CH
+	OR	ES:[DI],AL
+	INC	DI
+	RET
+PGTXOR:	AND	AL,CH
+	XOR	ES:[DI],AL
+	INC	DI
+	RET
+
+; From BASICA.COM CSEG:23ADH
+; Read a horizontal series of pixels into a byte array
+; MAPXYC and PGINIT should be called earlier to say where on screen to read
+; pixels from, where to write pixels to, and how many bits' worth of pixels
+;
+PUBLIC	NREAD
+NREAD:	PUSH	ES
+	CALL	NRWBEG
+	NEG	CL
+	AND	CL,7
+	MOV	CH,CL
+	JZ	NRD2
+	XOR	AH,AH
+	MOV	AL,ES:[DI]
+	INC	DI
+NRD1:	DEC	DX
+	JS	NRD4
+	STC
+	RCR	AH,1
+	DEC	CH
+	JNZ	NRD1
+	ROR	AL,CL
+	AND	AH,AL
+	MOV	BL,AH
+NRD2:	MOV	BP,DX
+	AND	DX,7
+	SHR	BP,1
+	SHR	BP,1
+	SHR	BP,1
+NRD3:	MOV	AL,ES:[DI]
+	INC	DI
+	DEC	BP
+	JS	NRD5
+	CALL	NRDBYT
+	JMP	SHORT NRD3
+
+NRDBYT:	XOR	AH,AH
+	ROR	AX,CL
+	OR	AL,BL
+	MOV	[SI],AL
+	MOV	BL,AH
+	INC	SI
+	RET
+
+NRD4:	ROR	AL,CL
+	AND	AL,AH
+	MOV	BL,AL
+	JMP	SHORT NRD7
+NRD5:	XCHG	DL,CL
+	MOV	AH,11111111B
+	SHR	AH,CL
+	XOR	AH,11111111B
+	MOV	CL,DL
+	JZ	NRD6
+	AND	AL,AH
+	MOV	DH,AL
+	XOR	AL,AL
+	SHR	AX,CL
+	MOV	BH,AL
+	MOV	AL,DH
+	CALL	NRDBYT
+	OR	BH,BH
+	JZ	NRWFIN
+NRD6:	OR	CL,CL
+	JZ	NRWFIN
+NRD7:	MOV	[SI],BL
+	INC	SI
+	JMP	SHORT NRWFIN
+
+; From BASICA.COM CSEG:2425H
+; Write a horizontal series of pixels from a byte array onto screen
+; MAPXYC and PGINIT should be called earlier to say where on screen to write
+; pixels to, where to read pixels from, and how many bits' worth of pixels
+;
+PUBLIC	NWRITE
+NWRITE:	PUSH	ES
+	CALL	NRWBEG
+	MOV	CH,11111111B
+	SHR	CH,CL
+	MOV	BP,DX
+	MOV	DH,11111111B
+	SHR	BP,1
+	SHR	BP,1
+	SHR	BP,1
+	JZ	NWR2
+	MOV	DH,CH
+NWR1:	CALL	NWRBYT
+	MOV	CH,11111111B
+	DEC	BP
+	JNZ	NWR1
+	AND	DL,7
+	JZ	NWR4
+NWR2:	XCHG	CL,DL
+	MOV	AX,1111111100000000B
+	SHR	AH,CL
+	NOT	AH
+	MOV	CL,DL
+	SHR	AX,CL
+	MOV	BH,AL
+	AND	CH,AH
+	NOT	DH
+	OR	CH,DH
+	CALL	NWRBYT
+	OR	BH,BH
+	JZ	NRWFIN
+	MOV	CH,BH
+NWR3:	MOV	AL,BL
+	CALL	WORD PTR PGTACT
+NRWFIN:	MOV	PGTARY,SI
+	POP	ES
+	RET
+NWR4:	XOR	DH,11111111B
+	MOV	CH,DH
+	JZ	NRWFIN
+	JMP	SHORT NWR3
+
+; From BASICA.COM CSEG:247BH
+NWRBYT:	LODSB
+	XOR	AH,AH
+	ROR	AX,CL
+	OR	AL,BL
+	MOV	BL,AH
+	JMP	WORD PTR PGTACT
+
+; From BASICA.COM CSEG:2488H
+NRWBEG:	MOV	DX,MAXDEL
+	MOV	DI,0B800H
+	MOV	ES,DI
+	MOV	DI,PIXOFS
+	MOV	SI,PGTARY
+	MOV	CL,PGTSHF
+	XOR	BX,BX
+	XOR	CH,CH
+	CLD
+	RET
+
 ; From BASICA.COM CSEG:2245H
 ; Set current pixel to the pixel just below it, unless pixel is already on
 ; last row, then just return with CF=1
@@ -1396,12 +1578,6 @@ SCNRST:	CMP	CRTMOD,AL
 	INT	10H
 	JMP	SHORT CRTOK1
 
-PUBLIC	NWRITE
-NWRITE:			;Dummy function
-	INT	3
-	RET
-	DB	"NWRITE"
-
 ; Implement the SCREEN command
 ; SCREEN [MODE] [,[COLORSWITCH] [,[APAGE] [,[VPAGE]]]]
 ;
@@ -1742,25 +1918,39 @@ BAKCLR	DB	?		; Current background colour for graphics
 				; The names FORCLR & BAKCLR are mentioned in
 				; GENGRP.ASM
 
-PIXBTS	DB	?		; From BASICA.COM DS:0055H
+PIXBTS	DB	?		; From BASICA.COM DSEG:0055H
 				; Number of bits per pixel; assumed to be 0
 				; (not graphics mode), 1, or 2
 
-PIXOFS	DW	?		; From BASICA.COM DS:06F3H
+PIXOFS	DW	?		; From BASICA.COM DSEG:06F3H
 				; Byte offset of current pixel into video
 				; memory
 
-ATRMSK	DB	?		; From BASICA.COM DS:06F5H
+ATRMSK	DB	?		; From BASICA.COM DSEG:06F5H
 				; Mask to apply to byte at 0B800H:[PIXOFS]
 				; to cover current pixel
 
-ATRPAT	DB	?		; From BASICA.COM DS:06F6H
+ATRPAT	DB	?		; From BASICA.COM DSEG:06F6H
 				; Bit pattern for current graphics
 				; attribute, to be masked with ATRMSK
 
-BORPAT	DB	?		; From BASICA.COM DS:0842H
+BORPAT	DB	?		; From BASICA.COM DSEG:0842H
 				; Bit pattern for border attribute for PAINT,
 				; to be masked with ATRMSK
+
+PGTSHF	DB	?		; From BASICA.COM DSEG:0857H
+				; For PUT or GET, Number of bits to shift
+				; graphics data so that layout in GW-BASIC
+				; memory aligns with layout in video memory
+
+PGTARY	DW	?		; From BASICA.COM DSEG:0859H
+				; For PUT or GET, pointer to byte array to
+				; PUT from or GET into
+
+PGTACT	DW	?		; From BASICA.COM DSEG:085BH
+				; For PUT or GET, pointer to function to
+				; apply action verb (PRESET, XOR, etc.) to
+				; pixel data
 
 CBFSEG	DW	?		; Segment of COM buffer (i.e. CBFSEG:0)
 
@@ -1769,6 +1959,7 @@ CBFSEG	DW	?		; Segment of COM buffer (i.e. CBFSEG:0)
 	EXTRN	CRTWID:BYTE,LINCNT:BYTE
 	EXTRN	CSRX:BYTE,CSRY:BYTE,F_EDIT:BYTE,F_INST:BYTE
 	EXTRN	CSAVEA:WORD,CSAVEM:BYTE
+	EXTRN	MAXDEL:WORD
 DSEG	ENDS
 
 SSEG	SEGMENT STACK 'STACKSG'
