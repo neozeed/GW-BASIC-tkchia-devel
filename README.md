@@ -28,7 +28,6 @@ Most of these have been implemented in the new modules `OEM.ASM` and
 `OEMSND.ASM`.
 However, some are still missing, and are currently stubs:
 `INICOM`,
-`NSETCX`,
 `POLLEV`,
 `RDPEN`,
 `RDSTIK`,

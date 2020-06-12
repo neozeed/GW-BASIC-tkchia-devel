@@ -406,11 +406,80 @@ RDTRIG:			;Dummy function
 	RET
 	DB	"RDTRIG"
 
+; Sets a horizontal series of pixels on the screen to the current colour
+; The desired pixel location and colour should be set first
+; using MAPXYC and SETATR
+;
+; INPUT
+;	BX		Number of pixels to set
+; REGISTERS AFFECTED
+;	(?)
+;
 PUBLIC	NSETCX
-NSETCX:			;Dummy function
-	INT	3
-	RET
-	DB	"NSETCX"
+NSETCX:	TEST	BX,BX
+	JZ	NSCZRO
+	PUSH	AX
+	PUSH	BX
+	PUSH	CX
+	PUSH	DX
+	PUSH	SI
+	PUSH	DI
+	PUSH	ES
+	PUSHF
+	MOV	AX,0B800H		; Set things up
+	MOV	ES,AX
+	MOV	CL,PIXBTS
+	MOV	DI,PIXOFS
+	MOV	DH,ATRPAT
+	MOV	DL,ATRMSK
+	TEST	DL,DL			; If we are not on a byte boundary,
+	JS	NSCBND			; then slowly fill in pixels until
+	MOV	AL,ES:[DI]		; we are
+NSCLFT:	MOV	AH,DH
+	XOR	AH,AL
+	AND	AH,DL
+	XOR	AL,AH
+	DEC	BX
+	JZ	NSCFIN
+	ROR	DL,CL
+	JNC	NSCLFT
+	STOSB
+NSCBND:	MOV	SI,10H			; Count number of pixels per shortword
+	CMP	CL,1
+	JZ	NSCPS1
+	SHR	SI,1
+NSCPS1:	CMP	BX,SI			; Try to quickly draw pixels in the
+	JNA	NSCRG1			; middle
+	MOV	AH,DH
+	MOV	AL,DH
+	SUB	BX,SI
+NSCMID:	STOSW
+	SUB	BX,SI
+	JA	NSCMID
+	ADD	BX,SI
+NSCRG1:	MOV	AL,ES:[DI]		; Fill in pixels on the right
+NSCRGT:	MOV	AH,DH
+	XOR	AH,AL
+	AND	AH,DL
+	XOR	AL,AH
+	DEC	BX
+	JZ	NSCFIN
+	ROR	DL,CL
+	JNC	NSCRGT
+	STOSB
+	JMP	SHORT NSCRG1
+NSCFIN:	MOV	PIXOFS,DI		; Update PIXOFS and ATRMSK
+	MOV	ATRMSK,DL
+	STOSB
+	POPF
+	POP	ES
+	POP	DI
+	POP	SI
+	POP	DX
+	POP	CX
+	POP	BX
+	POP	AX
+NSCZRO:	RET
 
 ; Modified from BASICA.COM CSEG:34F7H
 ; Send a byte to a printer
