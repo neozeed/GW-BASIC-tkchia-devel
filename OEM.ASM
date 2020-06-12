@@ -1856,11 +1856,30 @@ CLRERR:	POPF
 ; video mode
 CLRPRM:	DB	3,3,3,3,2,2,0,2
 
+; OEM supplied screen input(read colour attributes)
+;
+; INPUT
+;	AX		Column
+;	BX		Row
+; OUTPUT
+;	BX		Colour attributes
+; REGISTERS AFFECTED
+;	(?)
+;
 PUBLIC	SCRATR
-SCRATR:			;Dummy function
-	INT	3
+SCRATR:	PUSH	DX
+	MOV	DH,AL
+	MOV	DL,BL
+	CALL	CSRHAK
+	POP	DX
+	PUSH	AX
+	MOV	AH,08H
+	MOV	BH,ACTPAG
+	INT	10H
+	MOV	BL,AH
+	POP	AX
+	XOR	BH,BH
 	RET
-	DB	"SCRATR"
 
 PUBLIC	TRMCOM
 TRMCOM:			;Dummy function

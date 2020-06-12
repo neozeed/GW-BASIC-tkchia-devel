@@ -34,7 +34,6 @@ However, some are still missing, and are currently stubs:
 `RDSTIK`,
 `RDTRIG`,
 `RECCOM`,
-`SCRATR`,
 `SNDCOM`,
 `STACOM`,
 `TRMCOM`.
