@@ -48,7 +48,7 @@ routines.)
 ### With JWasm and JWlink
 
 * You need a system with AWK and GNU Make.  (AWK is used to run the script `jwasmify.awk` to munge the original sources into a form JWasm accepts.)
-* Build or download binaries for [JWasm](https://github.com/JWasm/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
+* Build or download binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
 * Run `make -f Makefile.jw`.
 
 ### With MASM 5.10A

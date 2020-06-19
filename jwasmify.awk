@@ -118,12 +118,27 @@ $0 ~ words_re {
 		print "SIRIUS=0"
 	}
 
-	# For some reason JWasm does not insert needed CS: segment overrides
-	# for these.  Urrrgh.  (I have reported this issue at
-	# https://github.com/JWasm/JWasm/issues/211 .)
-	gsub(/\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/, \
-	     "\tMOVS\t$FACLO,WORD PTR CS:?CSLAB")	# MATH1.ASM & MATH2.ASM
-	gsub(/ PTR \?CSLAB/, " PTR CS:?CSLAB")		# MATH1.ASM & MATH2.ASM
+	if ($0 ~ /^\tMOVS\t\?CSLAB,WORD PTR \?CSLAB/) {	# MATH1.ASM & MATH2.ASM
+		gsub(/\?CSLAB,/, "$FACLO,")
+		if (/;/) {
+			# The fork of JWasm at https://github.com/JWasm/JWasm
+			# does not (yet) properly insert a needed CS: segment
+			# override for this MOVS operation.
+			#
+			# Add an assembly-time check for this bug at a
+			# convenient spot in MATH1.ASM.  If the bug exists,
+			# recommend "mainline" JWasm...
+			print "?JWTST:"
+			print
+			print "IF\t$-?JWTST LT 2"
+			print "\t.ERR\t<this assembler is buggy>"
+			print "\t.ERR\t<try " \
+			      "https://github.com/Baron-von-Riedesel/JWasm " \
+			      "instead>"
+			print "ENDIF"
+			next
+		}
+	}
 
 	for (word in id_words) {
 		# For a word such as PUSHF, we need to spot these cases:
@@ -186,9 +201,10 @@ $0 ~ words_re {
 		gsub(/\$/, "\\$", FS)
 		$0 = $0
 		for (i = 2; i <= NF; ++i) {
-			if ($(i - 1) !~ id_ch_re "$")
+			if ($(i - 1) !~ id_ch_re "$") {
 				sub(/^:NEAR/, ":ABS", $i)
 				sub(/^:WORD/, ":ABS", $i)
+			}
 		}
 	}
 }
