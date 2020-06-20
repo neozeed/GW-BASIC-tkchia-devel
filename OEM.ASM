@@ -28,7 +28,7 @@ written from scratch.
 	.SALL
 
 	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR
-	EXTRN	SNDSTA:NEAR,SNDTRM:NEAR
+	EXTRN	SNDSTA:NEAR,SNDTRM:NEAR,EVSTA:NEAR,EVTRM:NEAR
 
 ;; Text screen group of subroutines
 
@@ -399,12 +399,6 @@ SWIDT2:	MOV	AL,CRTMOD
 ; that we want to change the screen width
 SMMP40	DB	0,1,0,1,4,5,4,7
 SMMP80	DB	2,3,2,3,6,6,6,7
-
-PUBLIC	RDTRIG
-RDTRIG:			;Dummy function
-	INT	3
-	RET
-	DB	"RDTRIG"
 
 ; Sets a horizontal series of pixels on the screen to the current colour
 ; The desired pixel location and colour should be set first
@@ -998,7 +992,8 @@ STACOM:			;Dummy function
 ; to its final location
 ;
 PUBLIC	SEGINI
-SEGINI:	JMP	SNDSTA			; _Really_ start sound support
+SEGINI:	CALL	SNDSTA			; _Really_ start sound support
+	JMP	EVSTA			; Initialize event handling
 
 PUBLIC	RECCOM
 RECCOM:			;Dummy function
@@ -1337,7 +1332,8 @@ GWTERM:	MOV	AL,VISPAG		; Force the visible page to become
 GWTRMF:	MOV	AH,01H			; Restore the startup cursor shape
 	MOV	CX,CSRINI
 	INT	10H
-	JMP	SNDTRM			; Clean up the sound module
+	CALL	SNDTRM			; Clean up the sound module
+	JMP	EVTRM			; Clean up event handling
 
 ; Return graphics dimensions for current screen
 ;
@@ -1955,18 +1951,6 @@ TRMCOM:			;Dummy function
 	INT	3
 	RET
 	DB	"TRMCOM"
-
-PUBLIC	POLLEV
-POLLEV:			;Dummy function
-	INT	3
-	RET
-	DB	"POLLEV"
-
-PUBLIC	RDSTIK
-RDSTIK:			;Dummy function
-	INT	3
-	RET
-	DB	"RDSTIK"
 
 ; Map "super shift key" (Alt-A ... Alt-Z) to a keyword in the keyword table
 ;

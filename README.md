@@ -24,18 +24,12 @@ support code are still missing or incomplete.
 Specifically, [Diomidis Spinellis](https://github.com/dspinellis/GW-BASIC)
 had observed that several OEM-specific functions were missing from the
 original source code release, and have to be added.
-Most of these have been implemented in the new modules `OEM.ASM` and
-`OEMSND.ASM`.
-However, some are still missing, and are currently stubs:
-`INICOM`,
-`POLLEV`,
-`RDPEN`,
-`RDSTIK`,
-`RDTRIG`,
-`RECCOM`,
-`SNDCOM`,
-`STACOM`,
-`TRMCOM`.
+Most of these have been implemented in the new modules `OEM.ASM`,
+`OEMEV.ASM`, and `OEMSND.ASM`.
+
+However:
+  * Some routines are still missing, and are currently stubs: `INICOM`, `RDPEN`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement light pen input and serial port I/O.
+  * Some routines need testing with the appropriate hardware: `POLLEV`, `RDSTIK`, `RDTRIG`.  These currently implement joystick input.
 
 (Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be
 present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
