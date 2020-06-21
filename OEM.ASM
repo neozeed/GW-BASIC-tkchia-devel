@@ -717,6 +717,7 @@ SETFBF:	RET
 PUBLIC	INICOM
 INICOM:			;Dummy function
 	INT	3
+	MOV	AH,6
 	RET
 	DB	"INICOM"
 
