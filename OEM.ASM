@@ -1616,6 +1616,12 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 	MOV	TXTBGC,0
 	MOV	BAKCLR,0
 	MOV	PIXBTS,BH
+	PUSH	AX
+	PUSH	CX
+	XCHG	BX,AX
+	CALL	SETATR
+	POP	CX
+	POP	AX
 	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
 	MOV	AL,0			; Now really clear the screen
