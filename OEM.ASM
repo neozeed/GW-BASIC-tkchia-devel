@@ -1604,7 +1604,8 @@ PRTINI:	MOV	AH,01H			; LPT4:)
 	MOV	CSRINI,CX
 	MOV	AH,0FH			; Get and save initial video mode
 	INT	10H
-	MOV	CRTINI,AL
+	AND	AL,01111111B		; Remove any "no blanking" bit in
+	MOV	CRTINI,AL		; the mode number
 	CMP	AL,07H			; If not a mode we know about, force
 	JNA	CRTOK2			; "standard" text mode
 	MOV	AX,0003H
