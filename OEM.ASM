@@ -1617,14 +1617,11 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 	MOV	TXTBGC,0
 	MOV	BAKCLR,0
 	MOV	PIXBTS,BH
-	PUSH	AX
-	PUSH	CX
-	XCHG	BX,AX
-	CALL	SETATR
-	POP	CX
-	POP	AX
-	CALL	SCNSWI			; Invoke callback to set screen
-					; parameters
+	PUSH	BX			; Invoke callback to set screen
+	CALL	SCNSWI			; parameters
+	POP	AX			; Set the colour attribute for
+	CALL	SETATR			; graphics operations (not really
+					; needed for text modes)
 	MOV	AL,0			; Now really clear the screen
 	CALL	CLRSCN
 	POP	BP
