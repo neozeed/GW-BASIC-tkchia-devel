@@ -174,20 +174,22 @@ STKGXA:	PUSH	CX
 	XOR	SI,SI			; SI = Y of A
 	XOR	DI,DI			; DI = X of B
 	XOR	BP,BP			; BP = Y of B
-	INC	AX			; FIXME: do we really need to zero AL
-	CLI				; before doing the OUT?
+	CLI
+	; Jim Leonard says (https://github.com/tkchia/GW-BASIC/issues/4):
+	; "some adapters won't work unless the one-shot sent to 201h has all
+	; bits set."  Luckily, AL is already 11111111B at this point, from
+	; the first DEC AX above.
 	OUT	DX,AL
 STKLOP:	IN	AL,DX
-	MOV	AH,AL
-	SHR	AH,1
+	ROR	AL,1
 	ADC	BX,0
-	SHR	AH,1
+	ROR	AL,1
 	ADC	SI,0
-	SHR	AH,1
+	ROR	AL,1
 	ADC	DI,0
-	SHR	AH,1
+	ROR	AL,1
 	ADC	BP,0
-	TEST	AL,00001111B
+	TEST	AL,11110000B
 	LOOPNZ	STKLOP
 	STI
 	MOV	STIKYA,SI
