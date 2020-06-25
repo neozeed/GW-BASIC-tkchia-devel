@@ -1717,10 +1717,9 @@ SCRMO3:	PUSH	BX
 	MOV	DH,AL
 	POP	AX
 	POP	BX
-	CMP	CRTMOD,AL		; If necessary, change the video mode
-	JZ	SCRMO4
-	CALL	SCNRST			; ...and reset relevant variables
-SCRMO4:	JCXZ	SCRFIN
+	CALL	SCNRST			; If necessary, change the video mode
+					; and reset relevant variables
+	JCXZ	SCRFIN
 	DEC	CX
 	MOV	DL,ACTPAG		; Determine the new active video
 	CMP	5[SI],CH		; page number
