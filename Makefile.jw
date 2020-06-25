@@ -2,6 +2,17 @@ ASM = jwasm
 LINK = jwlink
 RM = rm -f
 
+# Use a date as a version indicator.  If this is a Git tree and there are no
+# working tree changes, take the date in the Git index.  Otherwise, use the
+# current date.
+OEMVER := $(shell \
+		if git diff --quiet HEAD; then \
+			TZ=UTC0 git log -n1 --oneline --date=short-local \
+				--format='%ad'; \
+		else \
+			TZ=UTC0 date '+%Y-%m-%d'; \
+		fi)
+
 default: GWBASIC.EXE
 
 clean:
@@ -19,7 +30,8 @@ GWBASIC.EXE: GWDATA.OBJ ADVGRP.OBJ BIMISC.OBJ BIPRTU.OBJ BIPTRG.OBJ \
 %.OBJ: %.ASM jwasmify.awk
 	$(RM) $(@:.OBJ=.ERR)
 	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
-	$(ASM) -Zm -fpc -Fo$@ -Fw$(@:.OBJ=.ERR) $(@:.OBJ=.TMP)
+	$(ASM) -Zm -fpc -DOEMVER='$(OEMVER)' -Fo$@ -Fw$(@:.OBJ=.ERR) \
+	    $(@:.OBJ=.TMP)
 	$(RM) $(@:.OBJ=.TMP)
 
 MATH.ASM: MATH1.ASM MATH2.ASM

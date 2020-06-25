@@ -734,7 +734,22 @@ PUBLIC	GETHED
 GETHED:	MOV	BX,OFFSET CSEG:OEMHED
 	CMP	BX,BX
 	RET
-OEMHED:	DB	"GW-BASIC",0
+OEMHED:	DB	"GW-BASIC "
+IFDEF	OEMVER				; If an OEMVER macro is defined,
+	IRPC	X,OEMVER		; assume it gives more detailed
+		DB	"&X&"		; version information; use it
+	ENDM
+ELSE
+	DB	"2020"
+ENDIF
+	DB	" version"
+IFDEF	__JWASM__
+	DB	" (JWasm)"
+ENDIF
+	DB	", MIT License"
+	ACRLF
+	DB	"(C) Copyright Diomidis Spinellis, Stjepan Gros, TK Chia 2020"
+	DB	0
 
 ; From BASICA.COM CSEG:2225H
 ; Set current pixel to the pixel just above it, unless pixel is already on
