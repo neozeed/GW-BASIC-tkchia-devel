@@ -27,7 +27,7 @@ written from scratch.
         *
 	.SALL
 
-	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR
+	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR,SFTOFF:NEAR
 	EXTRN	SNDSTA:NEAR,SNDTRM:NEAR,EVSTA:NEAR,EVTRM:NEAR
 
 ;; Text screen group of subroutines
@@ -541,9 +541,22 @@ PEKFLT:	TEST	SP,SP
 ; OUTPUT
 ;	FLAGS		ZF=0 Go ahead and do the actual POKE
 ;			ZF=1 Do not do the actual POKE
+; REGISTERS AFFECTED
+;	DI (?)
 ;
 PUBLIC	POKFLT
-POKFLT:	TEST	SP,SP
+POKFLT:	TEST	AL,AL			; MS-DOS v1.25 DONKEY.BAS uses
+	JNZ	POKOK			;	975 DEF SEG: POKE 106,0
+	CMP	DX,106D			; to stop any ongoing expansion of
+	JNZ	POKOK			; of function keys & Alt- keys ---
+	PUSH	AX			; map it to a call to SFTOFF; (?) also
+	MOV	AX,ES			; do the actual POKE for good measure
+	MOV	DI,DS
+	CMP	AX,DI
+	POP	AX
+	JNZ	POKOK
+	CALL	SFTOFF
+POKOK:	TEST	SP,SP
 	RET
 
 ; Set serial port (COM1, COM2, etc.) buffer location and size
