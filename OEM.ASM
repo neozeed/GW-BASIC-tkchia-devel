@@ -1639,15 +1639,30 @@ CRTOK2:	MOV	CRTMOD,AL
 	MOV	BX,0101H
 CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
-	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
 	MOV	TXTFGC,BL
 	MOV	FORCLR,BL
 	MOV	TXTBGC,0
 	MOV	BAKCLR,0
 	MOV	PIXBTS,BH
-	PUSH	BX			; Invoke callback to set screen
-	CALL	SCNSWI			; parameters
+	PUSH	BX			; Save foreground colour, for SETATR
+	PUSH	AX
+	PUSH	ES
+	MOV	BP,-1			; Try to get the number of character
+	MOV	ES,BP			; rows for the screen (this function
+	MOV	AX,1130H		; is only present for newer e.g. EGA
+	MOV	BH,01H			; BIOSes, but it is useful)
+	INT	10H
+	MOV	BP,ES
+	POP	ES
+	POP	AX
+	MOV	CL,25D			; If this function is not supported,
+	INC	BP			; assume 25 rows
+	JNZ	CRTOK4
+	MOV	CL,DL
+	INC	CX
+CRTOK4:	CALL	SCNSWI			; Invoke callback to set screen
+					; parameters
 	POP	AX			; Set the colour attribute for
 	CALL	SETATR			; graphics operations (not really
 					; needed for text modes)
@@ -1660,13 +1675,13 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 	POP	CX
 	POP	BX
 	POP	AX
-CRTOK4:	RET
+CRTOK5:	RET
 
 ; Internal function: change the screen mode and reset relevant variables, if
 ; necessary
 ;
 SCNRST:	CMP	CRTMOD,AL
-	JZ	CRTOK4
+	JZ	CRTOK5
 	PUSH	AX
 	PUSH	BX
 	PUSH	CX
@@ -1676,7 +1691,7 @@ SCNRST:	CMP	CRTMOD,AL
 	PUSH	BP
 	XOR	AH,AH
 	INT	10H
-	JMP	SHORT CRTOK1
+	JMP	CRTOK1
 
 ; Implement the SCREEN command
 ; SCREEN [MODE] [,[COLORSWITCH] [,[APAGE] [,[VPAGE]]]]
