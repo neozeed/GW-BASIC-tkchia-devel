@@ -1620,8 +1620,24 @@ PRTINI:	MOV	AH,01H			; LPT4:)
 	AND	AL,01111111B		; Remove any "no blanking" bit in
 	MOV	CRTINI,AL		; the mode number
 	CMP	AL,07H			; If not a mode we know about, force
-	JNA	CRTOK2			; "standard" text mode
-	MOV	AX,0003H
+	JA	CRTRST			; "standard" text mode
+	PUSH	AX
+	PUSH	BX
+	PUSH	ES
+	MOV	BP,-1			; EGA & VGA BIOSes may say "screen
+	MOV	ES,BP			; mode 03H" but the screen is actually
+	MOV	AX,1130H		; in 80x43 or 80x50 mode; check for
+	MOV	BH,01H			; this
+	INT	10H
+	MOV	BP,ES
+	POP	ES
+	POP	BX
+	POP	AX
+	INC	BP
+	JZ	CRTOK2
+	CMP	DL,24D
+	JZ	CRTOK2
+CRTRST:	MOV	AX,0003H
 	INT	10H
 CRTOK1:	MOV	AH,0FH
 	INT	10H
@@ -1639,6 +1655,7 @@ CRTOK2:	MOV	CRTMOD,AL
 	MOV	BX,0101H
 CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 					; number of character columns
+	MOV	CL,25D			; Assume 25 rows
 	MOV	TXTATR,BL
 	MOV	TXTFGC,BL
 	MOV	FORCLR,BL
@@ -1646,22 +1663,7 @@ CRTOK3:	MOV	AL,AH			; INT 10H conveniently gives us the
 	MOV	BAKCLR,0
 	MOV	PIXBTS,BH
 	PUSH	BX			; Save foreground colour, for SETATR
-	PUSH	AX
-	PUSH	ES
-	MOV	BP,-1			; Try to get the number of character
-	MOV	ES,BP			; rows for the screen (this function
-	MOV	AX,1130H		; is only present for newer e.g. EGA
-	MOV	BH,01H			; BIOSes, but it is useful)
-	INT	10H
-	MOV	BP,ES
-	POP	ES
-	POP	AX
-	MOV	CL,25D			; If this function is not supported,
-	INC	BP			; assume 25 rows
-	JNZ	CRTOK4
-	MOV	CL,DL
-	INC	CX
-CRTOK4:	CALL	SCNSWI			; Invoke callback to set screen
+	CALL	SCNSWI			; Invoke callback to set screen
 					; parameters
 	POP	AX			; Set the colour attribute for
 	CALL	SETATR			; graphics operations (not really
@@ -1675,13 +1677,13 @@ CRTOK4:	CALL	SCNSWI			; Invoke callback to set screen
 	POP	CX
 	POP	BX
 	POP	AX
-CRTOK5:	RET
+CRTOK4:	RET
 
 ; Internal function: change the screen mode and reset relevant variables, if
 ; necessary
 ;
 SCNRST:	CMP	CRTMOD,AL
-	JZ	CRTOK5
+	JZ	CRTOK4
 	PUSH	AX
 	PUSH	BX
 	PUSH	CX
