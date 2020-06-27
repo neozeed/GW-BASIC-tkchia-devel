@@ -66,7 +66,7 @@ You can fetch MASM 5.1A from
 * Mount the image using the command `sudo mount MASM51A-UPDATE.img /mnt`
 * Copy the files from `/mnt` to your development directory
 
-You can fetch `make.exe` and `link.exe` from the same site, under `MS Macro 5.00 (Disk 1)`.
+You can fetch `make.exe` and `link.exe` from the same site, under `MS Macro Assembler 5.00 (Disk 1)`.
 
 ## License
 
