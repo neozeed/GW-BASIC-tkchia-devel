@@ -53,18 +53,20 @@ Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * The Microsoft MAKE and LINK programs that come with MASM (`make.exe`, `link.exe`).
 
 Run `make makefile` to assemble the files.
-Note the tools may leave behind  party-built executables or object files.
+Note the tools may leave behind partly-built executables or object files.
 If you want to rebuild them without changing the source code, you need
 to delete these files by hand.
 
 You can fetch MASM 5.1A from
 [this site](https://www.pcjs.org/software/pcx86/lang/microsoft/masm/5.10x/) as follows.
-* From the pull-down menu select `MS MAcro Assembler 5.10A (Update)`
+* From the pull-down menu select `MS Macro Assembler 5.10A (Update)`
 * Press the `Load` button to load the disk image into the emulator
 * Press the `Save` button to save the disk image to your computer
 * Copy  the saved disk image to a Linux computer
 * Mount the image using the command `sudo mount MASM51A-UPDATE.img /mnt`
 * Copy the files from `/mnt` to your development directory
+
+You can fetch `make.exe` and `link.exe` from the same site, under `MS Macro 5.00 (Disk 1)`.
 
 ## License
 
