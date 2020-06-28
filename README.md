@@ -28,8 +28,8 @@ Most of these have been implemented in the new modules `OEM.ASM`,
 `OEMEV.ASM`, and `OEMSND.ASM`.
 
 However:
-  * Some routines are still missing, and are currently stubs: `INICOM`, `RDPEN`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement light pen input and serial port I/O.
-  * Some routines need testing with the appropriate hardware: `POLLEV`, `RDSTIK`, `RDTRIG`, `SNDLPT`.  These currently implement general event polling, joystick input, and printer output.
+  * Some routines are still missing, and are currently stubs: `INICOM`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement serial port I/O.
+  * Some routines need testing with the appropriate hardware: `POLLEV`, `RDPEN`, `RDSTIK`, `RDTRIG`, `SNDLPT`.  These currently implement general event polling, light pen input, joystick input, and printer output.
 
 (Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be
 present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code

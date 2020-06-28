@@ -1546,13 +1546,6 @@ MAPEDF:	MOV	AH,0FFH
 NOEDF:	TEST	SP,SP
 	RET
 
-PUBLIC	RDPEN
-RDPEN:			;Dummy function
-	INT	3
-	XOR	BX,BX
-	RET
-	DB	"RDPEN"
-
 ; Set the shape of the cursor
 ; (?) This will likely be followed shortly by a call to CSRDSP
 ;

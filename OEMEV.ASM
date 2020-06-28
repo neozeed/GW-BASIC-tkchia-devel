@@ -10,10 +10,17 @@ INCLUDE	OEM.H
 COMMENT *
 Written by: TK Chia <https://github.com/tkchia>
 
-This currently only handles joysticks.  FIXME: also handle light pen input
-and serial port I/O.
+This currently only handles joysticks and light pens.  FIXME: (1) also
+handle serial port I/O; (2) properly test the joystick and light pen code.
+
+Many of the routines missing from the GW-BASIC code release are
+present in Microsoft's previous release of MS-DOS v1.25 BASICA.COM
+(https://github.com/microsoft/MS-DOS/tree/master/v1.25/bin),
+though only in binary form.  These are indicated.
         *
 	.SALL
+
+	EXTRN	FCERR:NEAR
 
 ; Internal function: initialize event handling
 ; This should only be called after DSEG has been moved to its final location
@@ -50,7 +57,7 @@ EVTRM:	PUSH	ES
 	POP	ES
 	RET
 
-; Internal function: INT 1CH (system timer tick) service routine.
+; Internal function: INT 1CH (system timer tick) service routine
 ;
 ISRTIC:	PUSH	DS
 	PUSH	AX
@@ -58,19 +65,53 @@ ISRTIC:	PUSH	DS
 ITICDS:	MOV	AX,0			; This is patched to say DSEG
 	MOV	DS,AX
 	MOV	DX,0201H		; Test if any joystick button is
-	IN	AL,DX			; pressed; if not, just hand over
-	AND	AL,11110000B		; to the original INT 1CH
+	IN	AL,DX			; pressed; if so, handle them
+	AND	AL,11110000B
 	CMP	AL,11110000B
 	JNZ	TICSTR
+TICPN1:	CMP	PENENA,0		; If light pen support is on, then
+	JNZ	TICPN2			; handle light pen input
 TICFWD:	POP	DX
 	POP	AX
 	PUSHF
 	CALL	DWORD PTR OIRTIC
 	POP	DS
 	IRET
-TICSTR:	MOV	EVENT,1			; Otherwise say that an event has
-	AND	TRGLAT,AL		; occurred, and also latch the
-	JMP	SHORT TICFWD		; buttons pressed
+TICSTR:	MOV	EVENT,1			; Joystick button pressed: say that
+	AND	TRGLAT,AL		; an event occurred, and also latch
+	JMP	SHORT TICPN1		; the buttons pressed
+TICPN2:	CALL	TICPEN
+	JMP	SHORT TICFWD
+
+; Modified from BASICA.COM CSEG:16C0H
+; Read light pen inputs from within the INT 1CH timer tick handler
+;
+; REGISTERS AFFECTED
+;	AX, DX
+;
+TICPEN:	PUSH	BX
+	PUSH	CX
+	MOV	AH,04H
+	INT	10H
+	OR	AH,AH
+	JZ	SHORT NOPEN
+	MOV	PEN4V,BX
+	MOV	PEN5V,CH
+	MOV	PEN98VM,DX
+NOPEN:	MOV	AL,PENPRV
+	XOR	AL,AH
+	JZ	TICPFI
+	OR	AH,AH
+	MOV	PENPRV,AH
+	JZ	TICPFI
+	MOV	PEN0V,-1
+	MOV	PEN1V,BX
+	MOV	PEN2V,CH
+	MOV	PEN76VM,DX
+	MOV	EVENT,1
+TICPFI:	POP	CX
+	POP	BX
+	RET
 
 ; Poll for events
 ;
@@ -84,6 +125,70 @@ PUBLIC	POLLEV
 POLLEV:	SHR	EVENT,1
 	SBB	AL,AL
 	RET
+
+; Read a light pen status, or enable or disable light pen support
+; INPUT
+;	AL		0---9 Read status, AL is parameter to PEN function
+;			0FEH Enable light pen support (PEN ON)
+;			0FFH Disable light pen support (PEN OFF)
+; OUTPUT
+;	BX		Requested light pen status, if 0 <= AL <= 9
+; REGISTERS AFFECTED
+;	(?)
+;
+PUBLIC	RDPEN
+RDPEN:	CBW
+	INC	AX
+	JS	ENAPEN
+	JZ	DISPEN
+	CMP	PENENA,0
+	JZ	PENERR
+	MOV	BX,AX
+	SHL	BX,1
+	JMP	CS:(PENTAB-2)[BX]
+PENERR:	JMP	FCERR
+ENAPEN:	MOV	PENENA,-1
+	RET
+DISPEN:	MOV	PENENA,0
+	RET
+PEN0F:	XOR	AL,AL
+	XCHG	PEN0V,AL
+	CBW
+	XCHG	BX,AX
+	RET
+PEN1F:	MOV	BX,PEN1V
+	RET
+PEN2F:	MOV	BL,PEN2V
+PENRT1:	XOR	BH,BH
+	RET
+PEN3F:	PUSH	CX			; Return current pen switch state
+	PUSH	DX
+	MOV	AH,04H
+	INT	10H
+	POP	DX
+	POP	CX
+	ADD	AH,-1
+	SBB	BX,BX
+	RET
+PEN4F:	MOV	BX,PEN4V
+	RET
+PEN5F:	MOV	BL,PEN5V
+	JMP	SHORT PENRT1
+PEN6F:	MOV	AL,BYTE PTR PEN76VM+1
+PENRT2:	XOR	AH,AH
+	INC	AX
+	XCHG	BX,AX
+	RET
+PEN7F:	MOV	AL,BYTE PTR PEN76VM
+	JMP	SHORT PENRT2
+PEN8F:	MOV	AL,BYTE PTR PEN98VM+1
+	JMP	SHORT PENRT2
+PEN9F:	MOV	AL,BYTE PTR PEN98VM
+	JMP	SHORT PENRT2
+
+PENTAB	DW	OFFSET PEN0F,OFFSET PEN1F,OFFSET PEN2F,OFFSET PEN3F
+	DW	OFFSET PEN4F,OFFSET PEN5F,OFFSET PEN6F,OFFSET PEN7F
+	DW	OFFSET PEN8F,OFFSET PEN9F
 
 ; Read the current status or latched status of a joystick button ---
 ; implement STRIG function
@@ -222,6 +327,27 @@ TRGLAT	DB	11110000B		; Latch of joystick buttons pressed
 					; since the last RDTRIG call; this
 					; is in the same format as the input
 					; from port 0201H
+
+					; From BASICA.COM DSEG:34H--40H
+PENENA	DB	0			; Whether light pen support is on
+PEN0V	DB	0			; Whether pen was down since last
+					; poll --- value to return for PEN(0)
+PENPRV	DB	0			; Used internally by TICPEN to track
+					; changes in pen activation state
+PEN1V	DW	0			; X coordinate when pen was last
+					; activated --- PEN(1) value
+PEN2V	DB	0			; Y coordinate when pen was last
+					; activated --- PEN(2) value
+PEN4V	DW	0			; Last known valid X coordinate for
+					; pen --- PEN(4) value
+PEN5V	DB	0			; Last known valid Y coordinate for
+					; pen --- PEN(5) value
+PEN76VM	DW	0			; Character column & row when pen was
+					; last activated --- PEN(7) value
+					; minus 1, PEN(6) value minus 1
+PEN98VM	DW	0			; Last known valid character column
+					; & row --- PEN(9) value minus 1,
+					; PEN(8) value minus 1
 
 EVENT	DB	0			; Whether an event has occurred
 					; since the last time we polled for
