@@ -78,7 +78,7 @@ BEGIN {
 	words_re = "("
 	for (word in id_words)
 		words_re = words_re word "|"
-	words_re = words_re "DB\tOFFSET|\\?CSLAB|PWR2PX=)"
+	words_re = words_re "DSEG|DB\tOFFSET|\\?CSLAB|PWR2PX=)"
 
 	# Do this for all modules, including the extra OEM.ASM.
 	print "; [ Munged by jwasmify.awk " strftime() " ]"
@@ -100,7 +100,7 @@ $0 ~ words_re {
 	# data segment separate from the code segment, if only the former is
 	# in DGROUP, _and_ if `dosseg' is specified to the linker (see
 	# Makefile.jw).  And, we might need this hack for OEM.ASM too.  Argh!
-	if ($0 ~ /^DSEG SEGMENT /)
+	if ($0 ~ /^DSEG[ \t]SEGMENT /)
 		print "DGROUP GROUP DSEG"
 
 	if (!really_munge) {
