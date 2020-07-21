@@ -1590,6 +1590,12 @@ CSASET:	MOV	CSRSHP,DX
 CSAERR:	STC
 	RET
 
+; From GWINI below.
+CRTVES:	XCHG	BX,AX			; If we can get the video mode via
+	TEST	AX,7F80H		; VESA & it _is_ a weird mode, then
+	JNZ	CRTRST			; force "standard" text mode
+	JMP	SHORT CRTGTO
+
 PUBLIC	GWINI
 GWINI:	PUSH	AX
 	PUSH	BX
@@ -1608,8 +1614,14 @@ PRTINI:	MOV	AH,01H			; LPT4:)
 	XOR	BH,BH			; shape
 	INT	10H
 	MOV	CSRINI,CX
-	MOV	AH,0FH			; Get and save initial video mode
-	INT	10H
+	MOV	AX,4F03H		; Get initial video mode using VESA
+	INT	10H			; --- useful to do this, in case the
+	CMP	AX,004FH		; initial mode is some weird
+	JZ	CRTVES			; SuperVGA mode which we cannot
+					; easily return to
+CRTGTO:	MOV	AH,0FH			; If we cannot get the video mode
+	INT	10H			; through VESA, get it through the
+					; classical interface
 	AND	AL,01111111B		; Remove any "no blanking" bit in
 	MOV	CRTINI,AL		; the mode number
 	CMP	AL,07H			; If not a mode we know about, force
