@@ -18,6 +18,8 @@ preprocessing ― using JWasm and JWlink.
 
 ### Implementation
 
+<img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwbasic-screenshot-scaled.png">
+
 The interpreter is semi-working, but some parts of the platform-specific
 support code are still missing or incomplete.
 
