@@ -26,7 +26,18 @@ though only in binary form.  These are indicated.
 ; This should only be called after DSEG has been moved to its final location
 ;
 PUBLIC	EVSTA
-EVSTA:	PUSH	ES
+EVSTA:	MOV	CX,5			; Test if we can get the joystick
+BIOJY1:	MOV	AH,84H			; status through the BIOS
+	MOV	DX,1
+	INT	15H
+	JC	BIOJY2
+	OR	AX,BX			; If the BIOS does not report an
+	OR	AX,CX			; error but return all (X, Y)'s as
+	OR	AX,DX			; 0, retry a few more times
+	JNZ	BIOJY3
+	HLT
+	LOOP	BIOJY1
+BIOJY2:	PUSH	ES
 	XOR	AX,AX			; Get & store original INT 1CH
 	MOV	ES,AX			; (system timer tick) vector
 	MOV	BX,1CH*4
@@ -41,6 +52,13 @@ EVSTA:	PUSH	ES
 	STI
 	POP	ES
 	RET
+BIOJY3:					; If the BIOS returns something
+					; interesting for the joystick
+					; status, then update our function
+					; pointers to use the BIOS
+	MOV	RDTRGP,OFFSET CSEG:RDTRG1
+	MOV	RDSTKP,OFFSET CSEG:RDSTK1
+	JMP	SHORT BIOJY2
 
 ; Internal function: do cleanup for event handling when we are exiting
 ;
@@ -57,6 +75,31 @@ EVTRM:	PUSH	ES
 	POP	ES
 	RET
 
+; Internal function: read joystick buttons via port I/O
+;
+; OUTPUT
+;	AL		State of joystick buttons
+;
+; REGISTERS AFFECTED
+;	AH (?), DX
+;
+RDTRG0:	MOV	DX,0201H
+	IN	AL,DX
+	RET
+
+; Internal function: read joystick buttons via BIOS
+;
+; OUTPUT
+;	AL		State of joystick buttons
+;
+; REGISTERS AFFECTED
+;	AH, DX
+;
+RDTRG1:	MOV	AH,84H
+	XOR	DX,DX
+	INT	15H
+	RET
+
 ; Internal function: INT 1CH (system timer tick) service routine
 ;
 ISRTIC:	PUSH	DS
@@ -64,11 +107,10 @@ ISRTIC:	PUSH	DS
 	PUSH	DX
 ITICDS:	MOV	AX,0			; This is patched to say DSEG
 	MOV	DS,AX
-	MOV	DX,0201H		; Test if any joystick button is
-	IN	AL,DX			; pressed; if so, handle them
-	AND	AL,11110000B
-	CMP	AL,11110000B
-	JNZ	TICSTR
+	CALL	WORD PTR RDTRGP		; Test if any joystick buttons are
+	AND	AL,11110000B		; pressed; if so, handle them
+	CMP	AL,11110000B		; (FIXME: is it actually OK to maybe
+	JNZ	TICSTR			; call the BIOS within this ISR?)
 TICPN1:	CMP	PENENA,0		; If light pen support is on, then
 	JNZ	TICPN2			; handle light pen input
 TICFWD:	POP	DX
@@ -216,9 +258,8 @@ RDTRIG:	CMP	AL,4
 	PUSH	DX
 	MOV	CX,AX
 	ADD	CL,5
-	MOV	DX,0201H
-	IN	AL,DX
-	TEST	AH,AH
+	CALL	WORD PTR RDTRGP
+	TEST	CH,CH
 	JZ	TRGCUR
 	CLI				; If we need the latched status,
 	AND	AL,TRGLAT		; then things are a bit more
@@ -235,40 +276,15 @@ TRGCUR:	SHR	AL,CL
 TRGBAD:	XOR	AL,AL
 	RET
 
-; Read an X or Y coordinate of a joystick --- implement STICK function
+; Internal function: read joystick coordinates via port I/O
 ;
-; INPUT
-;	AL		0 X coordinate of joystick A --- this implementation
-;			  also retrieves and stores the other coordinates below
-;			1 Y coordinate of joystick A
-;			2 X coordinate of joystick B
-;			3 Y coordinate of joystick B
 ; OUTPUT
-;	BX		Requested coordinate
-;	FLAGS		CF=0 OK
-;			CF=1 Error
+;	BX		X coordinate of joystick A
+;	STIKYA, STIKXB, STIKYB are updated
 ; REGISTERS AFFECTED
-;	(?)
+;	AX
 ;
-PUBLIC	RDSTIK
-RDSTIK:	CMP	AL,4
-	JA	STKBAD
-	PUSH	AX
-	CBW
-	DEC	AX
-	JS	STKGXA
-	JZ	STKGYA
-	DEC	AX
-	JZ	STKGXB
-	MOV	BX,STIKYB
-	JMP	SHORT STKFIN
-STKGXB:	MOV	BX,STIKXB
-	JMP	SHORT STKFIN
-STKGYA:	MOV	BX,STIKYA
-STKFIN:	POP	AX
-	CLC
-	RET
-STKGXA:	PUSH	CX
+RDSTK0:	PUSH	CX
 	PUSH	DX
 	PUSH	SI
 	PUSH	DI
@@ -305,6 +321,63 @@ STKLOP:	IN	AL,DX
 	POP	SI
 	POP	DX
 	POP	CX
+	RET
+
+; Internal function: read joystick coordinates via BIOS
+;
+; OUTPUT
+;	BX		X coordinate of joystick A
+;	STIKYA, STIKXB, STIKYB are updated
+; REGISTERS AFFECTED
+;	AX
+;
+RDSTK1:	PUSH	CX
+	PUSH	DX
+	MOV	AH,84H
+	MOV	DX,1
+	INT	15H
+	XCHG	BX,AX
+	MOV	STIKYA,AX
+	MOV	STIKXB,CX
+	MOV	STIKYB,DX
+	POP	DX
+	POP	CX
+	RET
+
+; Read an X or Y coordinate of a joystick --- implement STICK function
+;
+; INPUT
+;	AL		0 X coordinate of joystick A --- this implementation
+;			  also retrieves and stores the other coordinates below
+;			1 Y coordinate of joystick A
+;			2 X coordinate of joystick B
+;			3 Y coordinate of joystick B
+; OUTPUT
+;	BX		Requested coordinate
+;	FLAGS		CF=0 OK
+;			CF=1 Error
+; REGISTERS AFFECTED
+;	(?)
+;
+PUBLIC	RDSTIK
+RDSTIK:	CMP	AL,4
+	JA	STKBAD
+	PUSH	AX
+	CBW
+	DEC	AX
+	JS	STKGXA
+	JZ	STKGYA
+	DEC	AX
+	JZ	STKGXB
+	MOV	BX,STIKYB
+	JMP	SHORT STKFIN
+STKGXB:	MOV	BX,STIKXB
+	JMP	SHORT STKFIN
+STKGYA:	MOV	BX,STIKYA
+STKFIN:	POP	AX
+	CLC
+	RET
+STKGXA:	CALL	WORD PTR RDSTKP
 	POP	AX
 	CLC
 	RET
@@ -317,6 +390,10 @@ DSEG	SEGMENT PUBLIC 'DATASG'
 
 OIRTIC	DD	0			; Original INT 1CH vector
 
+RDTRGP	DW	OFFSET CSEG:RDTRG0	; Pointer to function to read the
+					; joystick buttons' state
+RDSTKP	DW	OFFSET CSEG:RDSTK0	; Pointer to function to read the
+					; joystick coordinates
 STIKYA	DW	0			; Y coordinate for joystick A as
 					; stored by STICK(0)
 STIKXB	DW	0			; X coordinate for joystick B as
