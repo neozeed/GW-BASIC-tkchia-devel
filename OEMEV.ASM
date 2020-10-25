@@ -26,7 +26,8 @@ though only in binary form.  These are indicated.
 ; This should only be called after DSEG has been moved to its final location
 ;
 PUBLIC	EVSTA
-EVSTA:	MOV	CX,5			; Test if we can get the joystick
+EVSTA:	PUSH	SI
+	MOV	SI,5			; Test if we can get the joystick
 BIOJY1:	MOV	AH,84H			; status through the BIOS
 	MOV	DX,1
 	INT	15H
@@ -36,8 +37,10 @@ BIOJY1:	MOV	AH,84H			; status through the BIOS
 	OR	AX,DX			; 0, retry a few more times
 	JNZ	BIOJY3
 	HLT
-	LOOP	BIOJY1
-BIOJY2:	PUSH	ES
+	DEC	SI
+	JNZ	BIOJY1
+BIOJY2:	POP	SI
+	PUSH	ES
 	XOR	AX,AX			; Get & store original INT 1CH
 	MOV	ES,AX			; (system timer tick) vector
 	MOV	BX,1CH*4
