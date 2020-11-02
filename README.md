@@ -3,7 +3,7 @@
 This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
 adjusted for assembling with JWasm or available versions of the Microsoft Macro Assembler.
 
-There is also a still-experimental subproject to re-introduce features to
+There is also a still-experimental subproject (`GWBASICA.EXE`) to re-introduce features to
 GW-BASIC which were only present in post-1983 BASIC interpreters.
 
 ## Announcement blog (from Microsoft)

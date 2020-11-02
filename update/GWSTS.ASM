@@ -2172,6 +2172,7 @@ TIMERF:
 	MUL	DX		;beyond 16 bits
 	ADD	AL,CH
 	ADC	AH,0
+	ADC	DX,0
 	PUSHF
 	MOV	DX,100		;Multiply by 100 to combine with centiseconds
 	MUL	DX
