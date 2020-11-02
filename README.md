@@ -3,6 +3,9 @@
 This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
 adjusted for assembling with JWasm or available versions of the Microsoft Macro Assembler.
 
+There is also a still-experimental subproject to re-introduce features to
+GW-BASIC which were only present in post-1983 BASIC interpreters.
+
 ## Announcement blog (from Microsoft)
 https://devblogs.microsoft.com/commandline/microsoft-open-sources-gw-basic/
 
@@ -27,7 +30,7 @@ Specifically, [Diomidis Spinellis](https://github.com/dspinellis/GW-BASIC)
 had observed that several OEM-specific functions were missing from the
 original source code release, and have to be added.
 Most of these have been implemented in the new modules `OEM.ASM`,
-`OEMEV.ASM`, and `OEMSND.ASM`.
+`OEMEV.ASM`, and `OEMSND.ASM`, mainly from scratch.
 
 However:
   * Some routines are still missing, and are currently stubs: `INICOM`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement serial port I/O.
@@ -47,14 +50,19 @@ routines.)
 * Build or download binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
 * Run `make -f Makefile.jw`.
 
+This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
+* `GWBASIC.EXE` includes only features present in the original 1983 interpreter.
+* `GWBASICA.EXE` includes some post-1983 features.
+
 ### With MASM 5.10A
 
 Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * This code
-* The Microsoft Macro Assembler (MASM) version 5.1A (`masm.exe`).
-* The Microsoft MAKE and LINK programs that come with MASM (`make.exe`, `link.exe`).
+* The Microsoft Macro Assembler (MASM) version 5.1A (`MASM.EXE`).
+* The Microsoft MAKE and LINK programs that come with MASM (`MAKE.EXE`, `LINK.EXE`).
 
 Run `make makefile` to assemble the files.
+This currently just builds `GWBASIC.EXE`.
 Note the tools may leave behind partly-built executables or object files.
 If you want to rebuild them without changing the source code, you need
 to delete these files by hand.
@@ -68,7 +76,7 @@ You can fetch MASM 5.1A from
 * Mount the image using the command `sudo mount MASM51A-UPDATE.img /mnt`
 * Copy the files from `/mnt` to your development directory
 
-You can fetch `make.exe` and `link.exe` from the same site, under `MS Macro Assembler 5.00 (Disk 1)`.
+You can fetch `MAKE.EXE` and `LINK.EXE` from the same site, under `MS Macro Assembler 5.00 (Disk 1)`.
 
 ## License
 
