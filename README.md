@@ -48,7 +48,7 @@ routines.)
 
 * You need a system with AWK and GNU Make.  (AWK is used to run the script `jwasmify.awk` to munge the original sources into a form JWasm accepts.)
 * Build or download binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
-* Run `make -f Makefile.jw`.
+* Run `make`.
 
 This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
 * `GWBASIC.EXE` includes only features present in the original 1983 interpreter.
@@ -61,7 +61,7 @@ Using  [DOSBox](https://www.dosbox.com/) mount a directory containing:
 * The Microsoft Macro Assembler (MASM) version 5.1A (`MASM.EXE`).
 * The Microsoft MAKE and LINK programs that come with MASM (`MAKE.EXE`, `LINK.EXE`).
 
-Run `make makefile` to assemble the files.
+Run `make Makefile.mas` to assemble the files.
 This currently just builds `GWBASIC.EXE`.
 Note the tools may leave behind partly-built executables or object files.
 If you want to rebuild them without changing the source code, you need

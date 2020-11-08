@@ -1,4 +1,4 @@
 *.ASM		text eol=crlf
 *.H		text eol=crlf
 *U		text eol=crlf
-MAKEFILE	text eol=crlf
+Makefile.mas	text eol=crlf
