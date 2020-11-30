@@ -1,5 +1,6 @@
 MATH.ASM
 *.OBJ
+*.ERR
 GWBASIC.EXE
 GWBASIC.MAP
 GWBASICA.EXE
@@ -8,3 +9,7 @@ GWBASICA.MAP
 LINK.EXE
 MASM.EXE
 MAKE.EXE
+JWasm.build
+JWlink.build
+jwasm
+jwlink

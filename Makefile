@@ -1,6 +1,22 @@
-ASM = jwasm
-LINK = jwlink
-RM = rm -f
+#	Permission is hereby granted, free of charge, to any person
+#	obtaining a copy of this software and associated documentation files
+#	(the "Software"), to deal in the Software without restriction,
+#	including without limitation the rights to use, copy, modify, merge,
+#	publish, distribute, sublicense, and/or sell copies of the Software,
+#	and to permit persons to whom the Software is furnished to do so,
+#	subject to the following conditions:
+#
+#	The above copyright notice and this permission notice shall be
+#	included in all copies or substantial portions of the Software.
+#
+#	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#	EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#	MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#	NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+#	BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+#	ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+#	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#	SOFTWARE.
 
 # Use a date as a version indicator.  If this is a Git tree and there are no
 # working tree changes, take the date in the Git index.  Otherwise, use the
@@ -32,11 +48,30 @@ ASRCS =	GWDATA.ASM ADVGRP.ASM BIMISC.ASM BIPRTU.ASM BIPTRG.ASM \
 	OEMSND.ASM ITSA86.ASM GWINIT.ASM BIBOOT.ASM
 AOBJS =	$(ASRCS:.ASM=.OBJ)
 
+DEPS = $(INCS)
+# If we already have JWasm &/or JWlink installed, use those.  Otherwise
+# download & build JWasm &/or JWlink.
+GIT = git
+ifneq "" "$(shell jwasm '-?' 2>/dev/null)"
+    ASM = jwasm
+else
+    ASM = ./jwasm
+    DEPS += $(ASM)
+endif
+ifneq "" "$(shell jwlink '-?' 2>/dev/null)"
+    LINK = jwlink
+else
+    LINK = ./jwlink
+    DEPS += $(LINK)
+endif
+RM = rm -f
+
 default: GWBASIC.EXE GWBASICA.EXE
 
 clean:
 	$(RM) *.OBJ GWBASIC.EXE GWBASICA.EXE *.MAP *.TMP *.ERR *~ \
-	      update/*.OBJ update/*.TMP update/*.ERR update/*~
+	      update/*.OBJ update/*.TMP update/*.ERR update/*~ \
+	      JWasm.build JWlink.build jwasm jwlink
 
 GWBASIC.EXE: $(OBJS)
 	$(LINK) format dos $(+:%=file %) name $@ option dosseg,map=GWBASIC.MAP
@@ -48,7 +83,7 @@ GWBASICA.EXE: $(AOBJS)
 # makefile --- as dependencies.  This tries to ensure that the version
 # information will be updated correctly when any of the other files are
 # updated.
-OEM.OBJ: OEM.ASM jwasmify.awk $(SRCS) $(INCS) $(lastword $(MAKEFILE_LIST))
+OEM.OBJ: OEM.ASM jwasmify.awk $(SRCS) $(DEPS) $($(lastword $(MAKEFILE_LIST))
 	$(RM) $(@:.OBJ=.ERR)
 	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
 	$(ASM) -Zm -fpc -DOEMVER='$(OEMVER)' -Fo$@ -Fw$(@:.OBJ=.ERR) \
@@ -57,15 +92,15 @@ OEM.OBJ: OEM.ASM jwasmify.awk $(SRCS) $(INCS) $(lastword $(MAKEFILE_LIST))
 
 # The "advanced" update/OEMA.OBJ is built similarly as OEM.OBJ, but it uses
 # a different version number.
-update/OEMA.OBJ: update/OEMA.ASM jwasmify.awk $(ASRCS) $(SRCS) $(INCS) \
-		  $(lastword $(MAKEFILE_LIST))
+update/OEMA.OBJ: update/OEMA.ASM jwasmify.awk $(ASRCS) $(SRCS) $(DEPS) \
+		 $(lastword $(MAKEFILE_LIST))
 	$(RM) $(@:.OBJ=.ERR)
 	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
 	$(ASM) -Zm -fpc -DOEMVER='A$(OEMVER)' -Fo$@ -Fw$(@:.OBJ=.ERR) \
 	    $(@:.OBJ=.TMP)
 	$(RM) $(@:.OBJ=.TMP)
 
-%.OBJ: %.ASM jwasmify.awk $(INCS)
+%.OBJ: %.ASM jwasmify.awk $(DEPS)
 	$(RM) $(@:.OBJ=.ERR)
 	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
 	$(ASM) -Zm -fpc -Fo$@ -Fw$(@:.OBJ=.ERR) $(@:.OBJ=.TMP)
@@ -73,5 +108,23 @@ update/OEMA.OBJ: update/OEMA.ASM jwasmify.awk $(ASRCS) $(SRCS) $(INCS) \
 
 MATH.ASM: MATH1.ASM MATH2.ASM
 	cat $^ >$@
+
+./jwasm:
+	$(RM) -r JWasm.build
+	$(GIT) clone https://github.com/Baron-von-Riedesel/JWasm.git \
+	    JWasm.build
+	$(MAKE) -C JWasm.build -f GccUnix.mak
+	cp JWasm.build/build/GccUnixR/jwasm $@.tmp
+	mv $@.tmp $@
+
+./jwlink:
+	$(RM) -r JWlink.build
+	$(GIT) clone https://github.com/JWasm/JWlink.git JWlink.build
+	$(MAKE) -C JWlink.build/dwarf/dw -f GccUnix.mak
+	$(MAKE) -C JWlink.build/orl -f GccUnix.mak
+	$(MAKE) -C JWlink.build/sdk/rc/wres -f GccUnix.mak
+	$(MAKE) -C JWlink.build -f GccUnix.mak
+	cp JWlink.build/GccUnixR/jwlink $@.tmp
+	mv $@.tmp $@
 
 .PHONY: default clean

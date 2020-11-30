@@ -46,11 +46,13 @@ routines.)
 
 ### With JWasm and JWlink
 
-* You need a system with AWK and GNU Make.  (AWK is used to run the script `jwasmify.awk` to munge the original sources into a form JWasm accepts.)
-* Build or download binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink).  Install them.
-* Run `make`.
+You need a system with
+* AWK and GNU Make, and
+* either
+  * installed binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink), or
+  * Git and GCC, for downloading and building JWasm and JWlink.
 
-This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
+Run `make`.  This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
 * `GWBASIC.EXE` includes only features present in the original 1983 interpreter.
 * `GWBASICA.EXE` includes some post-1983 features.
 

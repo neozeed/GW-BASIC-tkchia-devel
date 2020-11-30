@@ -28,16 +28,7 @@ before_script:
   - apt-get install -y git gawk make gcc
 build:
   script:
-    - git clone https://github.com/Baron-von-Riedesel/JWasm.git
-    - git clone https://github.com/JWasm/JWlink.git
-    - make -C JWasm -f GccUnix.mak
-    - make -C JWlink/dwarf/dw -f GccUnix.mak
-    - make -C JWlink/orl -f GccUnix.mak
-    - make -C JWlink/sdk/rc/wres -f GccUnix.mak
-    - make -C JWlink -f GccUnix.mak
-    - cp JWasm/build/GccUnixR/jwasm .
-    - cp JWlink/GccUnixR/jwlink .
-    - PATH=".:$PATH" make
+    - make
   artifacts:
     paths:
       - GWBASIC.EXE
