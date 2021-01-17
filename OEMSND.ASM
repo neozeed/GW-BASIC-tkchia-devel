@@ -32,43 +32,6 @@ here wholesale.
 					; timer that is triggered about 400
 					; times per second
 
-; Internal function: really finish initializing sound support
-; This should only be called after DSEG has been moved to its final location
-;
-PUBLIC	SNDSTA
-SNDSTA:	PUSH	ES
-	XOR	AX,AX			; Get & store original IRQ 0 vector
-	MOV	ES,AX
-	MOV	BX,08H*4
-	MOV	AX,ES:[BX]
-	MOV	WORD PTR OIRQ0,AX
-	MOV	AX,ES:2[BX]
-	MOV	WORD PTR OIRQ0+2,AX
-	MOV	WORD PTR CS:IRQ0DS+1,DS	; Patch our IRQ 0 code to set DS right
-	CLI				; Now install our own IRQ 0 code
-	MOV	WORD PTR ES:[BX],OFFSET IRQ0
-	MOV	WORD PTR ES:2[BX],CS
-	STI
-	POP	ES
-	RET
-
-; Internal function: do cleanup for this sound module when we are exiting
-;
-PUBLIC	SNDTRM
-SNDTRM:	MOV	AL,-1			; Immediately turn off sound
-	CALL	DONOTE
-	PUSH	ES
-	XOR	AX,AX
-	MOV	ES,AX			; Restore the IRQ 0 vector
-	MOV	AX,WORD PTR OIRQ0
-	CLI
-	MOV	ES:(08H*4),AX
-	MOV	AX,WORD PTR OIRQ0+2
-	MOV	ES:(08H*4)+2,AX
-	STI
-	POP	ES
-	RET
-
 DSEG	SEGMENT PUBLIC 'DATASG'
 	EXTRN	SNDTIC:BYTE		; Cheat a bit: treat SNDTIC as a flag
 	EXTRN	SNDBAS:WORD		; saying whether we are running on
@@ -144,6 +107,45 @@ I0NON2:	ADD	SNDBAS,P0PULS		; Reset PIT 0 to 18.2 Hz once we
 	OUT	80H,AL
 	OUT	40H,AL
 	JMP	I0FWD
+
+; Internal function: really finish initializing sound support
+; This should only be called after DSEG has been moved to its final location
+;
+PUBLIC	SNDSTA
+SNDSTA:	PUSH	ES
+	XOR	AX,AX			; Get & store original IRQ 0 vector
+	MOV	ES,AX
+	MOV	BX,08H*4
+	MOV	AX,ES:[BX]
+	MOV	WORD PTR OIRQ0,AX
+	MOV	AX,ES:2[BX]
+	MOV	WORD PTR OIRQ0+2,AX
+	MOV	WORD PTR CS:IRQ0DS+1,DS	; Patch our IRQ 0 code to set DS right
+	CLI				; Now install our own IRQ 0 code
+	MOV	WORD PTR ES:[BX],OFFSET IRQ0
+	MOV	WORD PTR ES:2[BX],CS
+	STI
+SNDTR1:	POP	ES
+	RET
+
+; Internal function: do cleanup for this sound module when we are exiting
+;
+PUBLIC	SNDTRM
+SNDTRM:	PUSH	ES
+	XOR	AX,AX
+	MOV	ES,AX
+	MOV	AX,WORD PTR OIRQ0	; Restore the IRQ 0 vector; however,
+	MOV	DX,WORD PTR OIRQ0+2	; if the IRQ 0 vector was not saved
+	CMP	AX,-1			; yet (likely due to an error on
+	JNZ	SNDTR2			; the command line), then do nothing
+	CMP	DX,AX
+	JZ	SNDTR1
+SNDTR2:	CLI
+	MOV	ES:(08H*4),AX
+	MOV	ES:(08H*4)+2,DX
+	POP	ES
+	MOV	AL,-1			; Turn off sound
+					; fall into DONOTE
 
 ; Modified from BASICA.COM CSEG:164BH (SNDRST ?) & CSEG:0FF4H (DOSND ?)
 ; Either (1) play a note, or (2) queue a note to be played in the
@@ -258,7 +260,7 @@ CSEG	ENDS
 
 DSEG	SEGMENT PUBLIC 'DATASG'
 
-OIRQ0	DD	?			; Original IRQ 0 vector
+OIRQ0	DD	-1			; Original IRQ 0 vector
 SNDQDS	DB	8D DUP(?)		; Descriptor structure for sound queue
 SNDQUE	DB	SNDQSZ DUP(?)		; Buffer for sound queue
 NOTTIC	DW	0			; Number of fast timer ticks left

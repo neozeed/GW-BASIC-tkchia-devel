@@ -47,9 +47,10 @@ ASRCS =	update/GWDATA.ASM ADVGRP.ASM BIMISC.ASM BIPRTU.ASM BIPTRG.ASM \
 	KANJ86.ASM MACLNG.ASM MATH.ASM NEXT86.ASM SCNDRV.ASM SCNEDT.ASM \
 	update/OEMA.ASM OEMEV.ASM OEMSND.ASM ITSA86.ASM update/GWINIT.ASM \
 	update/LSTVAR.ASM
+AINCS =	$(INCS) update/MSDOS2U
 AOBJS =	$(ASRCS:.ASM=.OBJ)
 
-DEPS = $(INCS)
+DEPS = $(sort $(INCS) $(AINCS))
 # If we already have JWasm &/or JWlink installed, use those.  Otherwise
 # download & build JWasm &/or JWlink.
 GIT = git
@@ -68,11 +69,16 @@ endif
 RM = rm -f
 
 default: GWBASIC.EXE GWBASICA.EXE
+.PHONY: default
 
-clean:
+clean: mostlyclean
+	$(RM) -r JWasm.build JWlink.build jwasm jwlink
+.PHONY: clean
+
+mostlyclean:
 	$(RM) -r *.OBJ GWBASIC.EXE GWBASICA.EXE *.MAP *.TMP *.ERR *~ \
-		 update/*.OBJ update/*.TMP update/*.ERR update/*~ \
-		 JWasm.build JWlink.build jwasm jwlink
+		 update/*.OBJ update/*.TMP update/*.ERR update/*~
+.PHONY: mostlyclean
 
 GWBASIC.EXE: $(OBJS)
 	$(LINK) format dos $(+:%=file %) name $@ option dosseg,map=GWBASIC.MAP
@@ -84,7 +90,7 @@ GWBASICA.EXE: $(AOBJS)
 # makefile --- as dependencies.  This tries to ensure that the version
 # information will be updated correctly when any of the other files are
 # updated.
-OEM.OBJ: OEM.ASM jwasmify.awk $(SRCS) $(DEPS) $($(lastword $(MAKEFILE_LIST))
+OEM.OBJ: OEM.ASM jwasmify.awk $(SRCS) $(DEPS) $(lastword $(MAKEFILE_LIST))
 	$(RM) $(@:.OBJ=.ERR)
 	awk -f ./jwasmify.awk $< >$(@:.OBJ=.TMP)
 	$(ASM) -Zm -fpc -DOEMVER='$(OEMVER)' -Fo$@ -Fw$(@:.OBJ=.ERR) \
@@ -127,5 +133,3 @@ MATH.ASM: MATH1.ASM MATH2.ASM
 	$(MAKE) -C JWlink.build -f GccUnix.mak
 	cp JWlink.build/GccUnixR/jwlink $@.tmp
 	mv $@.tmp $@
-
-.PHONY: default clean

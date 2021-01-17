@@ -68,14 +68,18 @@ BIOJY3:					; If the BIOS returns something
 PUBLIC	EVTRM
 EVTRM:	PUSH	ES
 	XOR	AX,AX
-	MOV	ES,AX			; Restore the INT 1CH vector
-	MOV	AX,WORD PTR OIRTIC
-	CLI
+	MOV	ES,AX
+	MOV	AX,WORD PTR OIRTIC	; Restore the INT 1CH vector
+	MOV	DX,WORD PTR OIRTIC+2
+	CMP	AX,-1			; If the vector was not saved, do
+	JNZ	EVTRM1			; nothing
+	CMP	DX,AX
+	JZ	EVTRM2
+EVTRM1:	CLI
 	MOV	ES:(1CH*4),AX
-	MOV	AX,WORD PTR OIRTIC+2
-	MOV	ES:(1CH*4)+2,AX
+	MOV	ES:(1CH*4)+2,DX
 	STI
-	POP	ES
+EVTRM2:	POP	ES
 	RET
 
 ; Internal function: read joystick buttons via port I/O
@@ -391,7 +395,7 @@ CSEG	ENDS
 
 DSEG	SEGMENT PUBLIC 'DATASG'
 
-OIRTIC	DD	0			; Original INT 1CH vector
+OIRTIC	DD	-1			; Original INT 1CH vector
 
 RDTRGP	DW	OFFSET CSEG:RDTRG0	; Pointer to function to read the
 					; joystick buttons' state
