@@ -48,9 +48,18 @@ ENDM
 
 ; MSDOS 2.x System Call codes
 ;
-	C_MKDI=57D		;Create subdirectory
-	C_RMDI=58D		;Remove subdirectory
-	C_CHDI=59D		;Set current directory
+	C_MKDI=39H		;Create subdirectory
+	C_RMDI=3AH		;Remove subdirectory
+	C_CHDI=3BH		;Set current directory
+	C_MAK2=3CH		;Create/truncate file
+	C_OPN2=3DH		;Open file
+	C_CLO2=3EH		;Close file
+	C_REA2=3FH		;Read from file
+	C_WRI2=40H		;Write to file
+	C_DEL2=41H		;Delete file
+	C_SEEK=42H		;Set file read/write position
+	C_SEA2=4EH		;Search for file
+	C_RNA2=56H		;Rename file
 
 	FNAML=11D		;number of bytes in Filename with extension
 	DATPSC=128D		;bytes per sector
