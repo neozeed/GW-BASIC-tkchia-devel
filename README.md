@@ -22,7 +22,7 @@ This is the version that currently seems to match the code most closely.
 It is now also possible to cross-assemble the source files ― with some
 preprocessing ― using JWasm and JWlink.
 
-### Implementation
+### Implementation ― `GWBASIC.EXE`
 
 <img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwb-scn-scaled.png">
 
@@ -45,6 +45,14 @@ release](https://github.com/microsoft/MS-DOS).  However, `BASICA.COM` is
 only released in binary form, so some analysis is needed to extract the
 routines.)
 
+### Implementation ― `GWBASICA.EXE`
+
+`GWBASICA` adds the following post-1983 features:
+  * The `TIMER` function, for getting the time of the day in floating-point form.
+    * The semantics of the `RANDOMIZE` statement have also been altered, so that the command `RANDOMIZE TIMER` works (mostly) as expected.
+  * The `MKDIR`, `CHDIR`, and `RMDIR` statements.
+    * However, other file-oriented commands, such as `OPEN` and `LOAD`, still do not work with subdirectory paths.  These should be fixed in due course.
+
 ## Building instructions
 
 ### With JWasm and JWlink
@@ -56,8 +64,6 @@ You need a system with
   * Git and GCC, for downloading and building JWasm and JWlink.
 
 Run `make`.  This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
-* `GWBASIC.EXE` includes only features present in the original 1983 interpreter.
-* `GWBASICA.EXE` includes some post-1983 features.
 
 ### With MASM 5.10A
 
