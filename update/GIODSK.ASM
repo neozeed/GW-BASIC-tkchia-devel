@@ -1119,13 +1119,56 @@ CHDIR:
 	CALL	FILDIR
 	POP	BX
 	POP	AX
+	PUSH	BX
 	CALLOS
-	JC	DIRERR
+	POP	BX
+FI2STA:	JC	FI2ERR
 	RET
-DIRERR:
-	CMP	AX,3
-	JBE	NA_FNF
-	JMP	DERBFM
+FI2ERR:	CMP	AX,FI2MAE-FI2MAP
+	JAE	FI2DIO
+	PUSH	BX
+	MOV	BX,OFFSET CSEG:FI2MAP
+	XLAT	CS:[BX]
+	POP	BX
+	XCHG	DX,AX
+	DB	0B9H
+FI2DIO:	MOV	DL,ERRDIO
+	EXTRN	ERROR:NEAR
+	JMP	ERROR
+
+; tkchia 19 Jan 2021: This array tries to map MSDOS 2+ error codes to BASIC
+; error codes.  The DOS error codes' meanings are as given in Ralf Brown's
+; Interrupt List.  The mappings may not be correct & should probably be
+; matched against an actual post-1983 BASIC interpreter's behaviour.
+
+	EXTRN	ERRFC:ABS,ERRFNF:ABS,ERRPNF:ABS,ERRTMF:ABS,ERRACC:ABS
+	EXTRN	ERRIER:ABS,ERROM:ABS,ERRDIO:ABS,ERRRAD:ABS,ERRDWP:ABS
+	EXTRN	ERRDNR:ABS
+FI2MAP:	DB	ERRIER			; no error (?) (-> internal error)
+	DB	ERRFC			; function number invalid
+	DB	ERRFNF			; file not found
+	DB	ERRPNF			; path not found
+	DB	ERRTMF			; too many files
+	DB	ERRACC			; access denied (-> path/file acc. er.)
+	DB	ERRIER			; invalid handle
+	DB	ERRIER			; memory control block destroyed
+	DB	ERROM			; insufficient memory
+	DB	ERRIER			; memory block address invalid
+	DB	ERRIER			; environment invalid (from EXEC?)
+	DB	ERRIER			; format invalid (from EXEC?)
+	DB	ERRDIO			; access code invalid (from IOCTL?)
+	DB	ERRDIO			; data invalid (from IOCTL?)
+	DB	ERRIER			; reserved
+	DB	ERRACC			; invalid drive
+	DB	ERRACC			; attempt to remove current directory
+	DB	ERRRAD			; not same device
+	DB	ERRFNF			; no more files
+	DB	ERRDWP			; disk write protected
+	DB	ERRDIO			; unknown unit (?)
+	DB	ERRDNR			; drive not ready
+	DB	ERRDIO			; unknown command (?)
+	DB	ERRDIO			; CRC error
+FI2MAE:
 
 ;FILES [ filename ]
 ; FILES command [List the Directory]
@@ -1134,6 +1177,7 @@ DIRERR:
 ; If supplied, all files matching filename or wildcards
 ; are listed.
 ;
+
 
 ;NAMFIL - Scan a file name for NAME, KILL, or FILES command
 ; Entry - [BX] = text pointer
