@@ -753,7 +753,7 @@ IFDEF	OEMVER				; If an OEMVER macro is defined,
 		DB	"&X&"		; version information; use it
 	ENDM
 ELSE
-	DB	"2020"
+	DB	"2021"
 ENDIF
 	DB	" version"
 IFDEF	__JWASM__
@@ -761,7 +761,7 @@ IFDEF	__JWASM__
 ENDIF
 	DB	", MIT License"
 	ACRLF
-	DB	"(C) Copyright Diomidis Spinellis, Stjepan Gros, TK Chia 2020"
+	DB	"(C) Copyright D. Spinellis, S. Gros, T.K. Chia 2020--2021"
 	DB	0
 
 ; From BASICA.COM CSEG:2225H
