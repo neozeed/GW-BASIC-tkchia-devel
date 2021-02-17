@@ -21,7 +21,7 @@ cleaning up a copy of the tables from BINTRP.  The code and tables
 to handle the extended reserved words was taken from L2RESS.MAC and
 modified as necessary.
 
-Updated 2020 by: TK Chia <https://github.com/tkchia>
+Updated 2020--2021 by: TK Chia <https://github.com/tkchia>
 	*
 
 	.SALL

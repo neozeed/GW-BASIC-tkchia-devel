@@ -15,7 +15,7 @@ COMMENT	*
 COPYRIGHT (C) 1982 BY MICROSOFT
 --------- --- ---- -- ---------
 
-Updated 2020 by: TK Chia <https://github.com/tkchia>
+Updated 2020--2021 by: TK Chia <https://github.com/tkchia>
         *
 
 ;General Feature Switches (Not OEM Switches)

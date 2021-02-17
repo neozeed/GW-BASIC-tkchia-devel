@@ -24,7 +24,7 @@ BILL GATES WROTE A LOT OF STUFF.
 PAUL ALLEN WROTE A LOT OF OTHER STUFF AND FAST CODE.
 MONTE DAVIDOFF WROTE THE MATH PACKAGE (F4I.MAC).
 
-Updated 2020 by: TK Chia <https://github.com/tkchia>
+Updated 2020--2021 by: TK Chia <https://github.com/tkchia>
 *
 
 	.XLIST

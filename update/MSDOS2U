@@ -10,7 +10,7 @@ COPYRIGHT (C) 1982 BY MICROSOFT
 
 	Programmer: Tom Corbett,  Microsoft Inc.
 
-Updated 2020 by: TK Chia <https://github.com/tkchia>
+Updated 2021 by: TK Chia <https://github.com/tkchia>
 	*
 
 CALLOS	MACRO	FUNC
@@ -46,8 +46,9 @@ ENDM
 	C_RBR=39D		;Random Block Read
 	C_PARS=41D		;Parse Filename
 
-; MSDOS 2.x System Call codes
+; MSDOS 2+ System Call codes
 ;
+	C_VERS=30H		;Get MSDOS version (subject to SETVER...)
 	C_MKDI=39H		;Create subdirectory
 	C_RMDI=3AH		;Remove subdirectory
 	C_CHDI=3BH		;Set current directory
@@ -59,6 +60,7 @@ ENDM
 	C_DEL2=41H		;Delete file
 	C_SEEK=42H		;Set file read/write position
 	C_SEA2=4EH		;Search for file
+	C_IVAR=52H		;Get the MSDOS-internal List of Lists
 	C_RNA2=56H		;Rename file
 
 	FNAML=11D		;number of bytes in Filename with extension
@@ -116,8 +118,65 @@ ENDM
 	FCB_RC=F_FCB+14D	;RECORD SIZE
 	FCB_FS=F_FCB+16D	;FILE SIZE IN BYTES
 	FCB_DT=F_FCB+20D	;Date of last write to file
-	FCB_DT=F_FCB+22D	;Time of last write to file
+	FCB_TM=F_FCB+22D	;Time of last write to file
 	FCB_NR=F_FCB+32D	;NEXT RECORD NUMBER
 	FCB_RN=F_FCB+33D	;CP/M 2.x Random Record Number
+
+; Offsets into MSDOS 2+ List of Lists
+;
+	IV_DPB=00H		;Pointer to first Drive Parameter Block
+	IV_SFT=04H		;Pointer to first System File Table
+	IV_CLK=08H		;Pointer to CLOCK$ device header
+	IV_CON=0CH		;Pointer to CON device header
+	IV_NL2=17H		;Actual NUL device header (MSDOS 2.x)
+	IV_NLX=22H		;Actual NUL device header (MSDOS 3+)
+
+; Offsets into an MSDOS 2+ System File Table
+;
+	FT_NXT=00H		;Pointer to next SFT
+	FT_NF=04H		;Number of file entries in this SFT
+	FT_ENT=06H		;Start of entries
+
+; Offsets into MSDOS 2.x System File Table entry
+;
+	F2_NFH=00H		;Number of file handles
+	F2_MOD=01H		;File open mode
+	F2_FTR=02H		;File attribute
+	F2_DRV=03H		;Drive
+	F2_FN=04H		;File name in FCB format
+	F2_DT=17H		;File date
+	F2_TM=19H		;File time
+	F2_DTR=1BH		;Device attribute
+	F2_CLU=1CH		;Starting cluster (disk file)
+	F2_LCL=20H		;Last cluster accessed (12-bit) & directory
+				;(12-bit), packed into 24 bits (see
+				;Microsoft's published MSDOS 2 sources)
+	F2SIZ=28H		;End of SFT entry
+
+; Offsets into MSDOS 3+ System File Table entry
+;
+	FX_NFH=00H		;Number of file handles
+	FX_MOD=02H		;File open mode
+	FX_FTR=04H		;File attribute
+	FX_DIW=05H		;Device information word, including drive no.
+	FX_DPB=07H		;DOS drive parameter block
+	FX_CLU=0BH		;Starting cluster (disk file)
+	FX_TM=0DH		;File time
+	FX_DT=0FH		;File date
+	FX_FSZ=11H		;File size
+	F30_FN=21H		;File name in FCB format (DOS 3.0)
+	FX_FN=20H		;File name in FCB format (DOS 3.1+)
+	F30SIZ=38H		;End of SFT entry (DOS 3.0)
+	F3XSIZ=35H		;End of SFT entry (DOS 3.1--3.3x)
+	FXSIZ=3BH		;End of SFT entry (DOS 4+)
+
+; Offsets into MSDOS 2+ character device driver header
+;
+	CDV_NX=00H		;Pointer to next driver
+	CDV_AT=04H		;Device attributes
+	CDV_ES=06H		;Device strategy entry point
+	CDV_EI=08H		;Device interrupt entry point
+	CDV_DN=0AH		;Device name
+	CDVSIZ=12H		;End of device header
 
         PAGE

@@ -9,7 +9,7 @@ INCLUDE	BINTRP.H
 
 	TITLE   GWDATA copied from BINTRP.MAC
 
-; Updated 2020 by: TK Chia <https://github.com/tkchia>
+; Updated 2020--2021 by: TK Chia <https://github.com/tkchia>
 
 	.RADIX	10
 
