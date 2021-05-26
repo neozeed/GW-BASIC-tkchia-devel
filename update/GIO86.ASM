@@ -26,7 +26,7 @@ Updated 2021 by: TK Chia <https://github.com/tkchia>
 CPM86=0
 IBMCSR=IBMLIK			;IBM Compatible Cursor Handling
 
-	INCLUDE	MSDOSU
+	INCLUDE	MSDOS2U
 
 DSEG	SEGMENT PUBLIC 'DATASG'		
 	ASSUME DS:DSEG
@@ -1698,6 +1698,10 @@ INIFDB:	PUSH	CX
 	MOV	BYTE PTR F_WID[SI],DL	;Set file width
 	MOV	BYTE PTR F_POS[SI],DH	;Set file position
 	MOV	BYTE PTR F_ORCT[SI],LOW 1	;indicates not at EOF
+	MOV	AX,-1			;Blank out directory identifier
+	MOV	BYTE PTR F_DID1[SI],AL
+	MOV	BYTE PTR F_DID2[SI],AL
+	MOV	WORD PTR F_DID3[SI],AX
 	POP	DI
 	POP	CX
 	RET	

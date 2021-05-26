@@ -70,9 +70,11 @@ ENDM
 ;MS-DOS FILE-DATA-BLOCK Record Definition
 ;
 	_OFFST=0		;initialize count
-	ROFFST	F_NUL1,1	;not used by basic interpreter
+	ROFFST	F_DID1,1	;(GWBASIC) not used by basic interpreter
+				;(GWBASICA) high 8 bits of "dir. id."
 	ROFFST	F_NUM,1		;file number 0..255
-	ROFFST	F_NUL2,2	;not used by basic interpreter
+	ROFFST	F_DID3,2	;(GWBASIC) not used by basic interpreter
+				;(GWBASICA) low 16 bits of "dir. id."
 	ROFFST	F_NEXT,2	;thread for linked list, [MEMSIZ]=end
 	ROFFST	F_MODE,1	;file mode:
 	MD_SQI=1D		;sequential input
@@ -91,7 +93,8 @@ ENDM
 	FC_ASC=0		;Ascii SAVE, Data files
 	FC_BIN=1		;binary file (BSAVE, binary SAVE)
 	ROFFST	F_BAKC,1	;holds next sequential input when F.FLBS.FL.BKC is true
-	ROFFST	F_NUL3,1	;not used by basic interpreter
+	ROFFST	F_DID2,1	;(GWBASIC) not used by basic interpreter
+				;(GWBASICA) middle 8 bits of "dir. id."
 	ROFFST	F_DEV,1		;Device number                             (FL.DSK)
 	ROFFST	F_WID,1		;File width
 	ROFFST	F_NUL4,1	;not used by basic interpreter
@@ -119,6 +122,13 @@ ENDM
 	FCB_FS=F_FCB+16D	;FILE SIZE IN BYTES
 	FCB_DT=F_FCB+20D	;Date of last write to file
 	FCB_TM=F_FCB+22D	;Time of last write to file
+	FCB_DW=F_FCB+24D	;Low byte of device information word (DOS 2.x
+				;internal)
+	FCB_SF=F_FCB+24D	;Index into SFT (DOS 3+ internal)
+	FCB_LC=F_FCB+29D	;Last cluster accessed (12-bit) & directory
+				;(12-bit), packed into 24 bits (2.x internal)
+	FCB_DI=F_FCB+29D	;Low 16 bits of sector number containing
+				;directory entry (DOS 3+ internal)
 	FCB_NR=F_FCB+32D	;NEXT RECORD NUMBER
 	FCB_RN=F_FCB+33D	;CP/M 2.x Random Record Number
 
@@ -142,6 +152,7 @@ ENDM
 	F2_NFH=00H		;Number of file handles
 	F2_MOD=01H		;File open mode
 	F2_FTR=02H		;File attribute
+	;Note: each 2.x SFT entry is basically a FCB with a header before it
 	F2_DRV=03H		;Drive
 	F2_FN=04H		;File name in FCB format
 	F2_DT=17H		;File date
@@ -158,12 +169,20 @@ ENDM
 	FX_NFH=00H		;Number of file handles
 	FX_MOD=02H		;File open mode
 	FX_FTR=04H		;File attribute
-	FX_DIW=05H		;Device information word, including drive no.
+	FX_DIW=05H		;Device information word
+		DIW_RM=8000H	;Bit 15: remote file
+		DIW_DV=0080H	;Bit 7: device special
 	FX_DPB=07H		;DOS drive parameter block
 	FX_CLU=0BH		;Starting cluster (disk file)
 	FX_TM=0DH		;File time
 	FX_DT=0FH		;File date
 	FX_FSZ=11H		;File size
+	F3_DIR=1DH		;16-bit number of sector containing directory
+				;entry (DOS 3.x)
+	F3_DEN=1FH		;Offset/index of directory entry within sector
+				;(DOS 3.x)
+	FX_DIR=1BH		;32-bit number of sector containing directory
+				;entry (DOS 4+)
 	F30_FN=21H		;File name in FCB format (DOS 3.0)
 	FX_FN=20H		;File name in FCB format (DOS 3.1+)
 	F30SIZ=38H		;End of SFT entry (DOS 3.0)
