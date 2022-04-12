@@ -1,6 +1,6 @@
 # Microsoft GW-BASIC Interpreter Source Code
 
-[![(Travis CI build status)](https://travis-ci.org/tkchia/GW-BASIC.svg?branch=tkchia/devel)](https://travis-ci.org/tkchia/GW-BASIC) · [![(GitLab pipeline status)](https://gitlab.com/tkchia/GW-BASIC/badges/tkchia/devel/pipeline.svg)](https://gitlab.com/tkchia/GW-BASIC/-/commits/tkchia/devel)
+[![(GitHub pipeline status)](https://github.com/tkchia/GW-BASIC/actions/workflows/ci-build.yml/badge.svg?branch=tkchia%2Fdevel)](https://github.com/tkchia/GW-BASIC/actions/workflows/ci-build.yml) · [![(GitLab pipeline status)](https://gitlab.com/tkchia/GW-BASIC/badges/tkchia/devel/pipeline.svg)](https://gitlab.com/tkchia/GW-BASIC/-/commits/tkchia/devel)
 
 This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
 adjusted for assembling with JWasm or available versions of the Microsoft Macro Assembler,
