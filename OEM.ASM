@@ -28,7 +28,8 @@ written from scratch.
 	.SALL
 
 	EXTRN	SCNSWI:NEAR,SCNCLR:NEAR,SCNTRM:NEAR,FCERR:NEAR,SFTOFF:NEAR
-	EXTRN	SNDSTA:NEAR,SNDTRM:NEAR,EVSTA:NEAR,EVTRM:NEAR
+	EXTRN	CBKSTA:NEAR,CBKTRM:NEAR,SNDSTA:NEAR,SNDTRM:NEAR
+	EXTRN	EVSTA:NEAR,EVTRM:NEAR
 
 ;; Text screen group of subroutines
 
@@ -1023,6 +1024,7 @@ STACOM:			;Dummy function
 ;
 PUBLIC	SEGINI
 SEGINI:	CALL	SNDSTA			; _Really_ start sound support
+	CALL	CBKSTA			; Initialize Ctrl-Break emulation
 	JMP	EVSTA			; Initialize event handling
 
 PUBLIC	RECCOM
@@ -1363,6 +1365,7 @@ GWTRMF:	MOV	AH,01H			; Restore the startup cursor shape
 	MOV	CX,CSRINI
 	INT	10H
 	CALL	SNDTRM			; Clean up the sound module
+	CALL	CBKTRM			; Clean up Ctrl-Break emulation
 	JMP	EVTRM			; Clean up event handling
 
 ; Return graphics dimensions for current screen

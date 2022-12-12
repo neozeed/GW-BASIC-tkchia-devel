@@ -26,24 +26,19 @@ preprocessing ― using JWasm and JWlink.
 
 <img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwb-scn-scaled.png">
 
-The interpreter is semi-working, but some parts of the platform-specific
-support code are still missing or incomplete.
+The interpreter is semi-working.  On systems which do not support using
+<kbd>Ctrl</kbd>-<kbd>Break</kbd> to terminate a program, try pressing
+<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>B</kbd> instead.
 
-Specifically, [Diomidis Spinellis](https://github.com/dspinellis/GW-BASIC)
-had observed that several OEM-specific functions were missing from the
-original source code release, and have to be added.
-Most of these have been implemented in the new modules `OEM.ASM`,
-`OEMEV.ASM`, and `OEMSND.ASM`, mainly from scratch.
-
-However:
+Parts of the platform-specific support code are still missing or incomplete:
   * Some routines are still missing, and are currently stubs: `INICOM`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement serial port I/O.
   * Some routines need testing with the appropriate hardware: `POLLEV`, `RDPEN`, `RDSTIK`, `RDTRIG`, `SNDLPT`.  These currently implement general event polling, light pen input, joystick input, and printer output.
 
-(Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be
-present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code
-release](https://github.com/microsoft/MS-DOS).  However, `BASICA.COM` is
-only released in binary form, so some analysis is needed to extract the
-routines.)
+(Earlier, [Diomidis Spinellis](https://github.com/dspinellis/GW-BASIC)
+had observed that several OEM-specific functions were missing from the
+original source code release, and have to be added.
+  * Most of these have been implemented in the new modules `OEM.ASM`, `OEMEV.ASM`, and `OEMSND.ASM`, mainly from scratch.
+  * Many of the needed OEM routines, such as `SETC` and `MAPXYC`, turn out to be present in `BASICA.COM` from [Microsoft's earlier MS-DOS v1.25 code release](https://github.com/microsoft/MS-DOS).  However, `BASICA.COM` is only released in binary form, so some analysis is needed to extract the routines.)
 
 ### Implementation ― `GWBASICA.EXE`
 
