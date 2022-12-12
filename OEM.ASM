@@ -753,7 +753,7 @@ IFDEF	OEMVER				; If an OEMVER macro is defined,
 		DB	"&X&"		; version information; use it
 	ENDM
 ELSE
-	DB	"2021"
+	DB	"2022"
 ENDIF
 	DB	" version"
 IFDEF	__JWASM__
@@ -761,7 +761,7 @@ IFDEF	__JWASM__
 ENDIF
 	DB	", MIT License"
 	ACRLF
-	DB	"(C) Copyright D. Spinellis, S. Gros, T.K. Chia 2020--2021"
+	DB	"(C) Copyright D. Spinellis, S. Gros, T.K. Chia 2020--2022"
 	DB	0
 
 ; From BASICA.COM CSEG:2225H
@@ -1413,6 +1413,7 @@ LABON:	TEST	SP,SP
 
 ; Internal data structure: mapping of IBM scan codes to "soft key" codes
 ;
+	EDCTLC	EQU	"C"-"@"+80H	; "^C"
 	EDCTLK	EQU	"K"-"@"+80H	; "^K"
 	EDCTLN	EQU	"N"-"@"+80H	; "^N"
 	EDCTLR	EQU	"R"-"@"+80H	; "^R"
@@ -1456,7 +1457,7 @@ KEYINP:	MOV	AH,01H
 	CMP	F_EDIT,0		; Suspend the CPU a bit --- but only
 	JZ	KEYFIN			; if we are actively waiting for a
 	HLT				; keystroke & not doing anything else
-	CMP	SP,SP
+KEYNON:	CMP	SP,SP
 KEYFIN:	RET
 KEYIN2:	XOR	AH,AH
 	INT	16H
@@ -1467,27 +1468,41 @@ KEYIN2:	XOR	AH,AH
 	RET
 KEYSCC:	XCHG	AH,AL			; Try to map a special key to GIOKYB's
 	CMP	AL,SCCMIN		; internal code; if this does not
-	JB	KEYSC2			; work, just return it as an IBM
-	CMP	AL,SCCMAX		; scan code
-	JA	KEYSC2
+	JB	KEYSC3			; work, check for ^Break or return
+	CMP	AL,SCCMAX		; key as an IBM Scan code
+	JA	KEYSC4
 	PUSH	BX
 	MOV	BX,OFFSET CSEG:SCCMAP-SCCMIN
 	XLAT	CS:[BX]
 	POP	BX
 	TEST	AL,AL
-	JZ	KEYSC2
-	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
+	JZ	KEYSC3
+KEYSC2:	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
 	SBB	AH,AH			;		80H--0FFH to 0FFxxH
 	SHR	AL,1
 	OR	AH,80H
 	TEST	SP,SP
 	STC
 	RET
-KEYSC2:	MOV	DX,AX			; IBM scan code
+KEYSC3:	TEST	AL,AL			; Test for ASCII code = scan code
+	JZ	KEYSC5			; = 0, which may indicate ^Break
+KEYSC4:	MOV	DX,AX			; IBM scan code
 	MOV	AX,0FEH
 	TEST	SP,SP
 	CLC
 	RET
+KEYSC5:	PUSH	ES			; Test for ^Break
+	MOV	ES,AX			; AX = 0
+	CLI
+	MOV	AL,ES:0471H
+	ROL	AL,1
+	SHR	AL,1
+	MOV	ES:0471H,AL		; If ^Break, reap the ^Break, &
+	STI				; return a special "^C" code
+	POP	ES
+	JNC	KEYNON
+	MOV	AL,EDCTLC
+	JMP	KEYSC2
 
 ; Map control character for editing
 ;
