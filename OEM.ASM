@@ -1469,17 +1469,17 @@ KEYIN2:	XOR	AH,AH
 	TEST	SP,SP			; just return
 	RET
 KEYSCC:	XCHG	AH,AL			; Try to map a special key to GIOKYB's
-	CMP	AL,SCCMIN		; internal code; if this does not
-	JB	KEYSC2			; work, check for ^Break or return
-	CMP	AL,SCCMAX		; key as an IBM Scan code
+	MOV	DX,AX			; internal code; if this does not
+	CMP	AL,SCCMIN		; work, return key as an IBM scan code
+	JB	KEYSC2
+	CMP	AL,SCCMAX
 	JA	KEYSC2
-	MOV	DX,AX
 	PUSH	BX
 	MOV	BX,OFFSET CSEG:SCCMAP-SCCMIN
 	XLAT	CS:[BX]
 	POP	BX
 	TEST	AL,AL
-	JZ	KEYSC3
+	JZ	KEYSC2
 	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
 	SBB	AH,AH			;		80H--0FFH to 0FFxxH
 	SHR	AL,1
@@ -1487,8 +1487,7 @@ KEYSCC:	XCHG	AH,AL			; Try to map a special key to GIOKYB's
 	TEST	SP,SP
 	STC
 	RET
-KEYSC2:	MOV	DX,AX			; IBM scan code
-KEYSC3:	MOV	AX,0FEH
+KEYSC2:	MOV	AX,0FEH			; IBM scan code
 	TEST	SP,SP
 	CLC
 	RET
