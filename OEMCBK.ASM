@@ -28,12 +28,19 @@ simulate the effects of a Ctrl-Break when Ctrl-Shift-B is pressed.
 ; miscellaneous services).
 ;
 ISRMSC:	PUSHF
-	CMP	AX,4F30H		; Are we intercepting pressing of
-	JZ	IMKMAP			; "B" key (scan code 30H)?
+	CMP	AH,4FH			; Are we intercepting a key press or
+	JZ	IMKMAP			; key release?
 	POPF				; If not, just do a far JMP to the
 IMOISR:	DB	0EAH			; original INT 15H ISR
 	DD	-1
-IMKMAP:	POPF
+IMKMAP:	STC				; We are intercepting a key press/
+	PUSH	CS			; release: ask the original ISR to
+	CALL	IMOISR			; map the key code first
+					; (NOTE: flags were already pushed)
+	JNC	IMKFN3			; If key stroke is to be ignored,
+					; then return immediately
+	CMP	AL,30H			; Otherwise... check if we are looking
+	JNZ	IMKFN2			; at a "B" key press
 	PUSH	DS
 	PUSH	AX
 	XOR	AX,AX			; Check if Ctrl & Shift are both
@@ -41,25 +48,27 @@ IMKMAP:	POPF
 	MOV	AL,DS:0417H		; Shift will do
 	AND	AL,00000111B
 	SUB	AL,00000101B
-	JC	IMOIR2
-	POP	AX			; Ctrl-Shift-B!  Clear keyboard buffer
-	MOV	AX,DS:041AH
+	JC	IMOFIN
+	POP	AX
+	MOV	AX,DS:041AH		; Ctrl-Shift-B!  Clear keyboard buffer
 	MOV	DS:041CH,AX
 	PUSH	CX
 	MOV	AH,05H			; Stuff "null" key stroke into buffer
 	XOR	CX,CX
 	INT	16H
 	POP	CX
-	OR	DS:0471H,10000000B	; Signal ^Break in BIOS data area
+					; Signal ^Break in BIOS data area
+	OR	BYTE PTR DS:0471H,10000000B
 	POP	DS
 	INT	1BH			; Run ^Break handler for good measure
-	STI				; We are done
-	CLC
+	CLC				; We are done
+	STI
 	RETF	2
-IMOIR2:	POP	AX
-	POP	DS			; No Ctrl-Shift-B, continue to
-	STC				; original ISR
-	JMP	IMOISR
+IMOFIN:	POP	AX			; No Ctrl-Shift-B, just return
+	POP	DS			; mapped scan code
+IMKFN2:	STC
+IMKFN3:	STI
+	RETF	2
 
 ; Internal function: start Ctrl-Break emulation
 ;
