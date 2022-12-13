@@ -1024,7 +1024,7 @@ STACOM:			;Dummy function
 ;
 PUBLIC	SEGINI
 SEGINI:	CALL	SNDSTA			; _Really_ start sound support
-	CALL	CBKSTA			; Initialize Ctrl-Break emulation
+	CALL	CBKSTA			; Initialize Ctrl-Break handling
 	JMP	EVSTA			; Initialize event handling
 
 PUBLIC	RECCOM
@@ -1365,7 +1365,7 @@ GWTRMF:	MOV	AH,01H			; Restore the startup cursor shape
 	MOV	CX,CSRINI
 	INT	10H
 	CALL	SNDTRM			; Clean up the sound module
-	CALL	CBKTRM			; Clean up Ctrl-Break emulation
+	CALL	CBKTRM			; Clean up Ctrl-Break handling
 	JMP	EVTRM			; Clean up event handling
 
 ; Return graphics dimensions for current screen
@@ -1416,7 +1416,6 @@ LABON:	TEST	SP,SP
 
 ; Internal data structure: mapping of IBM scan codes to "soft key" codes
 ;
-	EDCTLC	EQU	"C"-"@"+80H	; "^C"
 	EDCTLK	EQU	"K"-"@"+80H	; "^K"
 	EDCTLN	EQU	"N"-"@"+80H	; "^N"
 	EDCTLR	EQU	"R"-"@"+80H	; "^R"
@@ -1471,41 +1470,28 @@ KEYIN2:	XOR	AH,AH
 	RET
 KEYSCC:	XCHG	AH,AL			; Try to map a special key to GIOKYB's
 	CMP	AL,SCCMIN		; internal code; if this does not
-	JB	KEYSC3			; work, check for ^Break or return
+	JB	KEYSC2			; work, check for ^Break or return
 	CMP	AL,SCCMAX		; key as an IBM Scan code
-	JA	KEYSC4
+	JA	KEYSC2
+	MOV	DX,AX
 	PUSH	BX
 	MOV	BX,OFFSET CSEG:SCCMAP-SCCMIN
 	XLAT	CS:[BX]
 	POP	BX
 	TEST	AL,AL
 	JZ	KEYSC3
-KEYSC2:	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
+	SHL	AL,1			; Convert codes 00H--07FH to 080xxH,
 	SBB	AH,AH			;		80H--0FFH to 0FFxxH
 	SHR	AL,1
 	OR	AH,80H
 	TEST	SP,SP
 	STC
 	RET
-KEYSC3:	TEST	AL,AL			; Test for ASCII code = scan code
-	JZ	KEYSC5			; = 0, which may indicate ^Break
-KEYSC4:	MOV	DX,AX			; IBM scan code
-	MOV	AX,0FEH
+KEYSC2:	MOV	DX,AX			; IBM scan code
+KEYSC3:	MOV	AX,0FEH
 	TEST	SP,SP
 	CLC
 	RET
-KEYSC5:	PUSH	ES			; Test for ^Break
-	MOV	ES,AX			; AX = 0
-	CLI
-	MOV	AL,ES:0471H
-	ROL	AL,1
-	SHR	AL,1
-	MOV	ES:0471H,AL		; If ^Break, reap the ^Break, &
-	STI				; return a special "^C" code
-	POP	ES
-	JNC	KEYNON
-	MOV	AL,EDCTLC
-	JMP	KEYSC2
 
 ; Map control character for editing
 ;

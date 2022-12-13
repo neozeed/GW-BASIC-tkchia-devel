@@ -5,7 +5,7 @@ CSEG	SEGMENT PUBLIC 'CODESG'
 
 INCLUDE	OEM.H
 
-	TITLE   OEMCBK - Ctrl-Break emulation for keyboards without a Break key
+	TITLE   OEMCBK - Ctrl-Break handling and emulation
 
 COMMENT *
 Written by: TK Chia <https://github.com/tkchia>
@@ -23,6 +23,24 @@ simulate the effects of a Ctrl-Break when Ctrl-Shift-B is pressed.
 "Break" key.  See e.g. https://forum.thinkpads.com/viewtopic.php?t=105807 .)
         *
 	.SALL
+
+DSEG	SEGMENT PUBLIC 'DATASG'
+	EXTRN	MSDCCF:BYTE
+DSEG	ENDS
+
+; Internal function: INT 1BH service routine (for Ctrl-Break handling).
+;
+ISRCBK:	PUSH	AX
+	PUSH	DS
+CBKDS:	MOV	AX,0			; This is patched to say DSEG
+	MOV	DS,AX
+	ASSUME	DS:DSEG
+	MOV	MSDCCF,-1		; Record ^Break event
+	POP	DS
+	POP	AX
+	ASSUME	DS:NOTHING
+CBOISR:	DB	0EAH			; Continue to original INT 1BH ISR
+	DD	-1
 
 ; Internal function: INT 15H service routine (for cassette I/O & various
 ; miscellaneous services).
@@ -73,22 +91,32 @@ IMKFN3:	STI
 ; Internal function: start Ctrl-Break emulation
 ;
 PUBLIC	CBKSTA
-CBKSTA:	PUSH	DS
-	XOR	AX,AX			; Get & store original INT 15H vector
+CBKSTA:	MOV	WORD PTR CS:CBKDS+1,DS	; Patch our INT 1BH code to set DS
+	PUSH	DS
+	XOR	AX,AX
 	MOV	DS,AX
-	MOV	BX,15H*4
+	MOV	BX,1BH*4		; Store original INT 1BH vector
+	MOV	AX,[BX]
+	MOV	WORD PTR CS:CBOISR+1,AX
+	MOV	AX,2[BX]
+	MOV	WORD PTR CS:CBOISR+3,AX
+	CLI				; Install our own INT 1BH code
+	MOV	WORD PTR [BX],OFFSET ISRCBK
+	MOV	WORD PTR 2[BX],CS
+	STI
+	MOV	BL,15H*4		; Store original INT 15H vector
 	MOV	AX,[BX]
 	MOV	WORD PTR CS:IMOISR+1,AX
 	MOV	AX,2[BX]
 	MOV	WORD PTR CS:IMOISR+3,AX
-	CLI				; Now install our own INT 15H code
+	CLI				; Install our own INT 15H code
 	MOV	WORD PTR [BX],OFFSET ISRMSC
 	MOV	WORD PTR 2[BX],CS
 	STI
 CBKTR1:	POP	DS
 	RET
 
-; Internal function: do cleanup for Ctrl-Break emulation when we are exiting
+; Internal function: do cleanup for Ctrl-Break handling when we are exiting
 ;
 PUBLIC	CBKTRM
 CBKTRM:	PUSH	DS
@@ -101,8 +129,14 @@ CBKTRM:	PUSH	DS
 	CMP	DX,AX
 	JZ	CBKTR1
 CBKTR2:	CLI
-	MOV	DS:(15H*4),AX
-	MOV	DS:(15H*4)+2,DX
+	MOV	BX,15H*4
+	MOV	[BX],AX
+	MOV	2[BX],DX
+	MOV	BL,1BH*4		; Restore the INT 1BH vector too
+	MOV	AX,WORD PTR CS:CBOISR+1
+	MOV	[BX],AX
+	MOV	AX,WORD PTR CS:CBOISR+3
+	MOV	2[BX],AX
 	STI
 	POP	DS
 	RET
