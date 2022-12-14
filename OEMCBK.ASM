@@ -5,27 +5,35 @@ CSEG	SEGMENT PUBLIC 'CODESG'
 
 INCLUDE	OEM.H
 
-	TITLE   OEMCBK - Ctrl-Break handling and emulation
+	TITLE   OEMCBK - Ctrl-Break & Pause handling & emulation
 
 COMMENT *
 Written by: TK Chia <https://github.com/tkchia>
 
-It is sometimes useful to halt the execution of a running BASIC program.  On
-older PCs with a physical "Break"/"Pause" key or a physical "Scroll Lock"
-key, one can press Ctrl-Break or Ctrl-ScrLock to do this.  However, modern
-keyboards may lack such keys.
+It is sometimes useful to halt or pause the execution of a running BASIC
+program.  On older PCs with a physical "Break"/"Pause" key, a physical "Scroll
+Lock" key, or a physical "Numeric Lock" key, one can press
+  - Ctrl-Break or Ctrl-ScrLock to halt a program, or
+  - Pause or Ctrl-NumLock to pause a program.
+However, modern keyboards may lack such keys.
 
 To address this, I arrange to hook INT 15H, function 4FH --- which modern
 PCs should support --- to intercept key strokes received by IRQ 1, &
-simulate the effects of a Ctrl-Break when Ctrl-Shift-B is pressed.
+simulate the effects of
+  - a Ctrl-Break when Ctrl-Shift-B is pressed, or
+  - a Pause or Ctrl-NumLock when Ctrl-Shift-P is pressed.
+The INT 15H AH = 4FH hook also converts a physical Ctrl-NumLock into a
+special key code which the KEYINP routine can more easily handle.
 
-(I chose Ctrl-Shift-B because reportedly some laptops use Fn-B to stand for a
-"Break" key.  See e.g. https://forum.thinkpads.com/viewtopic.php?t=105807 .)
+(I chose Ctrl-Shift-B & Ctrl-Shift-P because reportedly some laptops use Fn-B
+& Fn-P to stand for the "Break" & "Pause" keys respectively.  See e.g.
+https://forum.thinkpads.com/viewtopic.php?t=105807 .)
         *
 	.SALL
 
 DSEG	SEGMENT PUBLIC 'DATASG'
 	EXTRN	MSDCCF:BYTE
+	EXTRN	EVENT:BYTE
 DSEG	ENDS
 
 ; Internal function: INT 1BH service routine (for Ctrl-Break handling).
@@ -58,18 +66,14 @@ IMKMAP:	STC				; We are intercepting a key press/
 	PUSH	CS			; release: ask the original ISR to
 	CALL	IMOISR			; map the key code first
 					; (NOTE: flags were already pushed)
-	JNC	IMKFN3			; If key stroke is to be ignored,
+	JNC	IMKFN4			; If key stroke is to be ignored,
 					; then return immediately
 	CMP	AL,30H			; Otherwise... check if we are looking
-	JNZ	IMKFN2			; at a "B" key press
+	JNZ	IMKMP2			; at a "B" key press
 	PUSH	DS
 	PUSH	AX
-	XOR	AX,AX			; Check if Ctrl & Shift are both
-	MOV	DS,AX			; pressed --- either left or right
-	MOV	AL,DS:0417H		; Shift will do
-	AND	AL,00000111B
-	SUB	AL,00000101B
-	JC	IMOFIN
+	CALL	TSTCS			; "B": Check for Ctrl-Shift
+	JB	IMKFN2
 	POP	AX
 	MOV	AX,DS:041AH		; Ctrl-Shift-B!  Clear keyboard buffer
 	MOV	DS:041CH,AX
@@ -77,22 +81,58 @@ IMKMAP:	STC				; We are intercepting a key press/
 	MOV	AH,05H			; Stuff "null" key stroke into buffer
 	XOR	CX,CX
 	INT	16H
-	POP	CX
-	POP	DS
 	INT	1BH			; Run ^Break handler for good measure
-	CLC				; We are done
+IMKFIN:	POP	CX			; We are done
+	POP	DS
+	CLC
 	STI
 	RETF	2
-IMOFIN:	POP	AX			; No Ctrl-Shift-B, just return
-	POP	DS			; mapped scan code
-IMKFN2:	STC
-IMKFN3:	STI
+IMKFN2:	POP	AX			; Unrecognized key code; just return
+	POP	DS			; system-mapped scan code
+IMKFN3:	STC
+IMKFN4:	STI
 	RETF	2
+IMKMP2:	JA	IMKMP3
+	CMP	AL,19H			; Check for "P" key press
+	JNZ	IMKFN3
+	PUSH	DS
+	PUSH	AX
+	CALL	TSTCS			; "P": Check for Ctrl-Shift
+	JB	IMKFN2
+IMKPAU:	POP	AX
+	PUSH	CX
+	MOV	AH,05H			; Ctrl-Shift-P or Ctrl-NumLock!
+	MOV	CX,1D00H		; Insert special key code into
+	INT	16H			; keyboard buffer --- 1DH is actually
+					; scan code for Ctrl, which will
+					; normally not go into buffer
+IMDS:	MOV	AX,0			; This is patched to say DSEG
+	MOV	DS,AX
+	ASSUME	DS:DSEG
+	MOV	EVENT,1			; Say we have an event to handle
+	ASSUME	DS:NOTHING
+	JMP	IMKFIN			; We are done
+IMKMP3:	CMP	AL,45H			; Check for NumLock
+	JNZ	IMKFN3
+	PUSH	DS
+	PUSH	AX
+	CALL	TSTCS			; NumLock: get Ctrl & Shift state
+	TEST	AL,00000100B		; Handle this as long as we have Ctrl
+	JZ	IMKFN2
+	JMP	IMKPAU
 
-; Internal function: start Ctrl-Break emulation
+TSTCS:	XOR	AX,AX
+	MOV	DS,AX
+	MOV	AL,DS:0417H		; Retrieve relevant parts of
+	AND	AL,00000111B		; shift state
+	CMP	AL,00000101B		; Check for Ctrl-Shift --- either
+	RET				; left or right Shift will do
+
+; Internal function: start Ctrl-Break & Pause emulation
 ;
 PUBLIC	CBKSTA
-CBKSTA:	MOV	WORD PTR CS:CBKDS+1,DS	; Patch our INT 1BH code to set DS
+CBKSTA:	MOV	WORD PTR CS:CBKDS+1,DS	; Patch our INT 1BH & 15H to set DS
+	MOV	WORD PTR CS:IMDS+1,DS
 	PUSH	DS
 	XOR	AX,AX
 	MOV	DS,AX
@@ -117,7 +157,7 @@ CBKSTA:	MOV	WORD PTR CS:CBKDS+1,DS	; Patch our INT 1BH code to set DS
 CBKTR1:	POP	DS
 	RET
 
-; Internal function: do cleanup for Ctrl-Break handling when we are exiting
+; Internal function: do cleanup for Ctrl-Break & Pause handling when we exit
 ;
 PUBLIC	CBKTRM
 CBKTRM:	PUSH	DS

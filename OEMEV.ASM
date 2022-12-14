@@ -191,11 +191,10 @@ RDPEN:	CBW
 	JS	ENAPEN
 	JZ	DISPEN
 	CMP	PENENA,0
-	JZ	PENERR
+	JZ	PENNON
 	MOV	BX,AX
 	SHL	BX,1
 	JMP	CS:(PENTAB-2)[BX]
-PENERR:	JMP	FCERR
 ENAPEN:	MOV	PENENA,-1
 	RET
 DISPEN:	MOV	PENENA,0
@@ -217,7 +216,7 @@ PEN3F:	PUSH	CX			; Return current pen switch state
 	POP	DX
 	POP	CX
 	ADD	AH,-1
-	SBB	BX,BX
+PENNON:	SBB	BX,BX
 	RET
 PEN4F:	MOV	BX,PEN4V
 	RET
@@ -433,6 +432,7 @@ PEN98VM	DW	0			; Last known valid character column
 					; & row --- PEN(9) value minus 1,
 					; PEN(8) value minus 1
 
+	PUBLIC	EVENT
 EVENT	DB	0			; Whether an event has occurred
 					; since the last time we polled for
 					; an event; _only_ the lowest bit

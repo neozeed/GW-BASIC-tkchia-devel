@@ -24,9 +24,13 @@ preprocessing ― using JWasm and JWlink.
 
 ### Implementation ― `GWBASIC.EXE`
 
-The interpreter is semi-working.  On systems which do not support using
-<kbd>Ctrl</kbd> - <kbd>Break</kbd> to terminate a program, try pressing
-<kbd>Ctrl</kbd> - <kbd>⇧ Shift</kbd> - <kbd>B</kbd> instead.
+The interpreter is mostly working. ☺
+
+On systems which do not support
+using <kbd>Ctrl</kbd>-<kbd>Break</kbd> (or <kbd>Ctrl</kbd>-<kbd>ScrLock</kbd>) to terminate a program,
+or using <kbd>Pause</kbd> (or <kbd>Ctrl</kbd>-<kbd>NumLock</kbd>) to pause a program,
+try pressing <kbd>Ctrl</kbd>-<kbd>⇧Shift</kbd>-<kbd>B</kbd> or
+<kbd>Ctrl</kbd>-<kbd>⇧Shift</kbd>-<kbd>P</kbd> instead.
 
 <img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwb-scn-scaled.png">
 

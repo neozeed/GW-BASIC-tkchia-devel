@@ -1419,6 +1419,7 @@ LABON:	TEST	SP,SP
 	EDCTLK	EQU	"K"-"@"+80H	; "^K"
 	EDCTLN	EQU	"N"-"@"+80H	; "^N"
 	EDCTLR	EQU	"R"-"@"+80H	; "^R"
+	EDCTLS	EQU	"S"-"@"+80H	; "^S"
 	EDCTLBS	EQU	"\"-"@"+80H	; "^\"
 	EDCTLRB	EQU	"]"-"@"+80H	; "^]"
 	EDCTLCA	EQU	"^"-"@"+80H	; "^^"
@@ -1428,7 +1429,9 @@ LABON:	TEST	SP,SP
 SCCMAP:	DB	"Q",	"W",	"E",	"R"		; 10H Alt-Q etc.
 	DB	"T",	"Y",	"U",	"I"		; 14H Alt-T etc.
 	DB	"O",	"P",	0,	0		; 18H Alt-O, Alt-P
-	DB	0,	0,	"A",	"S"		; 1CH Alt-A, Alt-S
+	DB	0,	EDCTLS,	"A",	"S"		; 1CH Ctrl(-NumLock
+							;     --- see ISRMSC),
+							;     Alt-A, Alt-S
 	DB	"D",	"F",	"G",	"H"		; 20H Alt-D etc.
 	DB	"J",	"K",	"L",	0		; 24H Alt-J etc.
 	DB	0,	0,	0,	0		; 28H Alt-Quote etc.
