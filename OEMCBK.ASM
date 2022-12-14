@@ -36,9 +36,12 @@ CBKDS:	MOV	AX,0			; This is patched to say DSEG
 	MOV	DS,AX
 	ASSUME	DS:DSEG
 	MOV	MSDCCF,-1		; Record ^Break event
+	XOR	AX,AX			; "Reap" ^Break flag from BIOS data
+	MOV	DS,AX			; area
+	ASSUME	DS:NOTHING
+	AND	BYTE PTR DS:0471H,01111111B
 	POP	DS
 	POP	AX
-	ASSUME	DS:NOTHING
 CBOISR:	DB	0EAH			; Continue to original INT 1BH ISR
 	DD	-1
 
@@ -75,8 +78,6 @@ IMKMAP:	STC				; We are intercepting a key press/
 	XOR	CX,CX
 	INT	16H
 	POP	CX
-					; Signal ^Break in BIOS data area
-	OR	BYTE PTR DS:0471H,10000000B
 	POP	DS
 	INT	1BH			; Run ^Break handler for good measure
 	CLC				; We are done
@@ -132,11 +133,10 @@ CBKTR2:	CLI
 	MOV	BX,15H*4
 	MOV	[BX],AX
 	MOV	2[BX],DX
-	MOV	BL,1BH*4		; Restore the INT 1BH vector too
-	MOV	AX,WORD PTR CS:CBOISR+1
-	MOV	[BX],AX
+	MOV	AX,WORD PTR CS:CBOISR+1	; Restore the INT 1BH vector too
+	MOV	(1BH*4-15H*4)[BX],AX
 	MOV	AX,WORD PTR CS:CBOISR+3
-	MOV	2[BX],AX
+	MOV	(1BH*4-15H*4+2)[BX],AX
 					; Clear any ^Break flag
 	AND	BYTE PTR DS:0471H,01111111B
 	STI

@@ -24,11 +24,11 @@ preprocessing ― using JWasm and JWlink.
 
 ### Implementation ― `GWBASIC.EXE`
 
-<img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwb-scn-scaled.png">
-
 The interpreter is semi-working.  On systems which do not support using
-<kbd>Ctrl</kbd>-<kbd>Break</kbd> to terminate a program, try pressing
-<kbd>Ctrl</kbd>-<kbd>Shift</kbd>-<kbd>B</kbd> instead.
+<kbd>Ctrl</kbd> - <kbd>Break</kbd> to terminate a program, try pressing
+<kbd>Ctrl</kbd> - <kbd>⇧ Shift</kbd> - <kbd>B</kbd> instead.
+
+<img width="400" height="250" align="right" style="float: right; margin: 0 10px 0 0;" alt="" src="gwb-scn-scaled.png">
 
 Parts of the platform-specific support code are still missing or incomplete:
   * Some routines are still missing, and are currently stubs: `INICOM`, `RECCOM`, `SNDCOM`, `STACOM`, `TRMCOM`.  These are meant to implement serial port I/O.
