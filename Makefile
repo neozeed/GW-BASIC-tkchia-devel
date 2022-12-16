@@ -28,6 +28,11 @@ OEMVER := $(shell \
 		else \
 			TZ=UTC0 date '+%Y-%m-%d'; \
 		fi)
+# An abbreviated version of the date as a version indicator.
+SHORTVER := $(shell \
+		  echo '$(OEMVER)' | sed -e 's/^..//' -e 's/-0\(.\)-/\1/' \
+					 -e 's/-10-/A/' -e 's/-11-/B/' \
+					 -e 's/-12-/C/')
 
 SRCS =	GWDATA.ASM ADVGRP.ASM BIMISC.ASM BIPRTU.ASM BIPTRG.ASM \
 	BISTRS.ASM CALL86.ASM DSKCOM.ASM FIVEO.ASM GENGRP.ASM GIO86.ASM \
@@ -76,9 +81,17 @@ clean: mostlyclean
 .PHONY: clean
 
 mostlyclean:
-	$(RM) -r *.OBJ GWBASIC.EXE GWBASICA.EXE *.MAP *.TMP *.ERR *~ \
+	$(RM) -r *.OBJ GWBASIC.EXE GWBASICA.EXE *.MAP *.TMP *.ERR *.ZIP *~ \
 		 update/*.OBJ update/*.TMP update/*.ERR update/*~
 .PHONY: mostlyclean
+
+rel: default
+	$(RM) -r GWB*.ZIP GWB*.TMP
+	mkdir -p GWB$(SHORTVER).TMP/DEVEL/GWBASIC
+	cp GWBASIC.EXE GWBASICA.EXE GWB$(SHORTVER).TMP/DEVEL/GWBASIC
+	cd GWB$(SHORTVER).TMP && TZ=UTC0 zip -9rkX ../GWB$(SHORTVER).ZIP DEVEL
+	$(RM) -r GWB$(SHORTVER).TMP
+.PHONY: rel
 
 GWBASIC.EXE: $(OBJS)
 	$(LINK) format dos $(+:%=file %) name $@ option dosseg,map=GWBASIC.MAP
