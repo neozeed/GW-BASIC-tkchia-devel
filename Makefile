@@ -57,7 +57,8 @@ AOBJS =	$(ASRCS:.ASM=.OBJ)
 
 DEPS = $(sort $(INCS) $(AINCS))
 # If we already have JWasm &/or JWlink installed, use those.  Otherwise
-# download & build JWasm &/or JWlink.
+# optionally download & build JWasm &/or JWlink.
+TAR = tar
 GIT = git
 ifneq "" "$(shell jwasm '-?' 2>/dev/null)"
     ASM = jwasm
@@ -129,17 +130,30 @@ update/OEMA.OBJ: update/OEMA.ASM jwasmify.awk $(ASRCS) $(SRCS) $(DEPS) \
 MATH.ASM: MATH1.ASM MATH2.ASM
 	cat $^ >$@
 
-./jwasm:
+./jwasm: $(wildcard JWasm.shallow.tar.xz)
 	$(RM) -r JWasm.build
-	$(GIT) clone https://github.com/Baron-von-Riedesel/JWasm.git \
-	    JWasm.build
+	set -e; \
+	if test -n '$<'; then \
+		mkdir JWasm.build; \
+		$(TAR) -x -v -f '$<' -C JWasm.build --strip-components 1; \
+	else \
+		$(GIT) clone https://github.com/Baron-von-Riedesel/JWasm.git \
+		    JWasm.build; \
+	fi
 	$(MAKE) -C JWasm.build -f GccUnix.mak
 	cp JWasm.build/build/GccUnixR/jwasm $@.tmp
 	mv $@.tmp $@
 
-./jwlink:
+./jwlink: $(wildcard JWlink.shallow.tar.xz)
 	$(RM) -r JWlink.build
-	$(GIT) clone https://github.com/JWasm/JWlink.git JWlink.build
+	set -e; \
+	if test -n '$<'; then \
+		mkdir JWlink.build; \
+		$(TAR) -x -v -f '$<' -C JWlink.build --strip-components 1; \
+	else \
+		$(GIT) clone https://github.com/JWasm/JWlink.git \
+			     JWlink.build; \
+	fi
 	$(MAKE) -C JWlink.build/dwarf/dw -f GccUnix.mak
 	$(MAKE) -C JWlink.build/orl -f GccUnix.mak
 	$(MAKE) -C JWlink.build/sdk/rc/wres -f GccUnix.mak

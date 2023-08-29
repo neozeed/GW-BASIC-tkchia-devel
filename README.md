@@ -1,6 +1,6 @@
 # Microsoft GW-BASIC Interpreter Source Code
 
-[![(GitHub pipeline status)](https://github.com/tkchia/GW-BASIC/actions/workflows/ci-build.yml/badge.svg?branch=tkchia%2Fdevel)](https://github.com/tkchia/GW-BASIC/actions/workflows/ci-build.yml) · [![(GitLab pipeline status)](https://gitlab.com/tkchia/GW-BASIC/badges/tkchia/devel/pipeline.svg)](https://gitlab.com/tkchia/GW-BASIC/-/commits/tkchia/devel)
+[![(GitLab pipeline status)](https://gitlab.com/tkchia/GW-BASIC/badges/tkchia/devel/pipeline.svg)](https://gitlab.com/tkchia/GW-BASIC/-/commits/tkchia/devel)
 
 This repo contains the original source-code for Microsoft's GW-BASIC interpreter, as of 1983,
 adjusted for assembling with JWasm or available versions of the Microsoft Macro Assembler,
@@ -60,7 +60,7 @@ You need a system with
 * AWK and GNU Make, and
 * either
   * installed binaries for [JWasm](https://github.com/Baron-von-Riedesel/JWasm) and [JWlink](https://github.com/JWasm/JWlink), or
-  * Git and GCC, for downloading and building JWasm and JWlink.
+  * GCC, for building JWasm and JWlink.
 
 Run `make`.  This should build two executable files, `GWBASIC.EXE` and `GWBASICA.EXE`.
 
