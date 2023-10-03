@@ -32,7 +32,7 @@ jobs:
       - name: setup
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y git gawk make gcc
+          sudo apt-get install -y xz-utils gawk make gcc
       - name: build
         run: make
       - name: upload artifacts
